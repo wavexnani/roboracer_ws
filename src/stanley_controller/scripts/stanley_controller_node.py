@@ -2,44 +2,77 @@
 """
 Stanley Controller ROS 2 Node for F1TENTH / RoboRacer.
 Tracks a waypoint raceline at variable speeds using the Stanley steering control law
-with exact orthogonal cross-track projection, windowed waypoint tracking, and RViz visualization.
+with exact orthogonal cross-track projection, speed-adaptive lookahead, curvature feedforward,
+braking-horizon speed adaptation, dynamic map discovery across f1tenth_racetracks, and RViz visualization.
 """
 
 import math
 import os
+import sys
+from typing import Optional
+
 import numpy as np
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from ackermann_msgs.msg import AckermannDriveStamped
 from visualization_msgs.msg import Marker
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, PoseWithCovarianceStamped
+
+try:
+    from stanley_controller.track_manager import TrackManager, TrackInfo
+except ImportError:
+    # Support direct execution without sourcing setup.bash
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    cands = [
+        os.path.abspath(os.path.join(cur_dir, '..')),
+        os.path.abspath(os.path.join(cur_dir, f'../python{sys.version_info.major}.{sys.version_info.minor}/site-packages')),
+        os.path.abspath(os.path.join(cur_dir, '../../../src/stanley_controller')),
+        '/home/yeswanth/roboracer_ws/src/stanley_controller',
+    ]
+    for c in cands:
+        if os.path.isdir(c) and c not in sys.path:
+            sys.path.insert(0, c)
+    from stanley_controller.track_manager import TrackManager, TrackInfo
 
 
 class StanleyControllerNode(Node):
-    """ROS 2 Node for Stanley Path Tracking with Variable Speed."""
+    """ROS 2 Node for Stanley Path Tracking with Variable Speed & Multi-Map Support."""
 
-    def __init__(self):
+    def __init__(self, map_name_override: Optional[str] = None):
         super().__init__('stanley_controller_node')
 
-        # Parameters
+        # Map & Trajectory Profile Parameters
+        self.declare_parameter('map_name', 'Spielberg')
+        self.declare_parameter('waypoint_type', 'raceline')   # 'raceline' or 'centerline'
+        self.declare_parameter('waypoints_path', '')          # Optional explicit CSV override
+        self.declare_parameter('sync_sim_map', True)          # Automatically update f1tenth_gym sim.yaml
+        self.declare_parameter('publish_initial_pose', True)  # Teleport simulator car to map start
+        self.declare_parameter('initialpose_topic', '/initialpose')
+
+        # Topics
         self.declare_parameter('odom_topic', '/ego_racecar/odom')
         self.declare_parameter('drive_topic', '/drive')
-        self.declare_parameter('waypoints_path', '')
-        self.declare_parameter('gain_k', 2.3)
-        self.declare_parameter('software_k', 0.5)
+
+        # Stanley Control Parameters
+        self.declare_parameter('gain_k', 2.3)                 # Cross-track gain
+        self.declare_parameter('software_k', 0.5)             # Softening constant (m/s)
         self.declare_parameter('gain_ff', 0.12)               # Curvature feedforward gain
-        self.declare_parameter('wheelbase', 0.33)
-        self.declare_parameter('lookahead_dist', 0.15)        # Base lookahead distance [m]
-        self.declare_parameter('lookahead_gain', 0.02)        # Speed-proportional lookahead gain [s]
-        self.declare_parameter('max_steering_angle', 0.4189)  # ~24 degrees
-        self.declare_parameter('min_speed', 1.0)
-        self.declare_parameter('max_speed', 8.0)
-        self.declare_parameter('speed_scale', 0.68)
+        self.declare_parameter('wheelbase', 0.33)             # Wheelbase L [m]
+        self.declare_parameter('lookahead_dist', 0.15)        # Base preview distance ahead of front axle [m]
+        self.declare_parameter('lookahead_gain', 0.02)        # Speed-proportional preview gain [s]
+        self.declare_parameter('max_steering_angle', 0.4189)  # ~24 degrees [rad]
+
+        # Velocity & Curvature Profile Parameters
+        self.declare_parameter('min_speed', 1.0)              # [m/s]
+        self.declare_parameter('max_speed', 8.0)              # [m/s]
+        self.declare_parameter('speed_scale', 0.68)           # Global velocity scale factor
         self.declare_parameter('enable_curvature_speed', True)
         self.declare_parameter('lat_accel_max', 4.0)          # [m/s^2] maximum lateral tire acceleration
         self.declare_parameter('brake_decel', 4.0)            # [m/s^2] braking deceleration for lookahead
         self.declare_parameter('min_lookahead_horizon', 1.0)  # [m] minimum braking horizon distance
+
+        # Visualization
         self.declare_parameter('visualize', True)
         self.declare_parameter('target_marker_topic', '/vis/stanley_target')
         self.declare_parameter('path_marker_topic', '/vis/stanley_path')
@@ -65,16 +98,56 @@ class StanleyControllerNode(Node):
         self.visualize = bool(p('visualize'))
         self.target_marker_topic = str(p('target_marker_topic'))
         self.path_marker_topic = str(p('path_marker_topic'))
+        self.sync_sim_map = bool(p('sync_sim_map'))
+        self.publish_initial_pose = bool(p('publish_initial_pose'))
+        self.initialpose_topic = str(p('initialpose_topic'))
 
         # Track progress state
         self._last_idx = 0
 
-        # Load waypoints (x, y, heading psi, target speed)
-        self._load_waypoints(str(p('waypoints_path')))
+        # Determine active map name (CLI override takes precedence over parameter)
+        requested_map = map_name_override if map_name_override else str(p('map_name'))
+        waypoint_type = str(p('waypoint_type'))
+        explicit_csv = str(p('waypoints_path')) if p('waypoints_path') else None
+
+        # Load track geometry and velocity profile via TrackManager
+        self.track = TrackManager.load_track(
+            track_name=requested_map,
+            waypoint_type=waypoint_type,
+            custom_csv_path=explicit_csv,
+            default_speed=self.max_speed,
+            lat_accel_max=self.lat_accel_max
+        )
+
+        self.waypoints = self.track.waypoints
+        self.path_headings = self.track.headings
+        self.s_arr = self.track.s_arr
+        self.kappa = self.track.kappa
+        self.target_speeds = self.track.target_speeds
+        self.track_length = self.track.track_length
+        self.num_waypoints = len(self.waypoints)
+
+        # Simulator synchronization
+        if self.sync_sim_map:
+            synced = TrackManager.sync_sim_yaml(self.track)
+            if synced:
+                self.get_logger().info(
+                    f"Synchronized f1tenth_gym_ros sim.yaml with map: '{self.track.map_path_no_ext}' "
+                    f"at start pose {self.track.start_pose}"
+                )
 
         # ROS 2 Interfaces
         self.drive_pub = self.create_publisher(AckermannDriveStamped, self.drive_topic, 10)
         self.odom_sub = self.create_subscription(Odometry, self.odom_topic, self.odom_callback, 10)
+
+        if self.publish_initial_pose:
+            self.initial_pose_pub = self.create_publisher(
+                PoseWithCovarianceStamped,
+                self.initialpose_topic,
+                10
+            )
+            # Timer to ensure subscriber discovery before publishing initial pose
+            self._init_pose_timer = self.create_timer(0.6, self._publish_initial_pose_once)
 
         if self.visualize:
             self.target_marker_pub = self.create_publisher(Marker, self.target_marker_topic, 10)
@@ -82,82 +155,44 @@ class StanleyControllerNode(Node):
             self._publish_path_marker()
 
         self.get_logger().info(
-            f'Stanley Controller Node ready. Waypoints: {self.num_waypoints}, '
-            f'Sub: {self.odom_topic}, Pub: {self.drive_topic}'
+            f"Stanley Controller Node initialized for track: '{self.track.track_name}' "
+            f"(profile: {self.track.waypoint_type}, {self.num_waypoints} pts, {self.track_length:.1f}m). "
+            f"Sub: {self.odom_topic}, Pub: {self.drive_topic}"
         )
 
-    def _load_waypoints(self, path):
-        """Loads waypoints from CSV with robust multi-location fallback and comment handling."""
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        candidates = [
-            path,
-            os.path.join(script_dir, '../waypoints/Spielberg_raceline.csv'),
-            os.path.join(script_dir, '../waypoints/Spielberg_centerline.csv'),
-            '/sim_ws/src/stanley_controller/waypoints/Spielberg_raceline.csv',
-            '/home/yeswanth/roboracer_ws/src/stanley_controller/waypoints/Spielberg_raceline.csv',
-            os.path.join(script_dir, '../waypoints/example_waypoints.csv'),
-            os.path.join(script_dir, '../../pure_pursuit/waypoints/example_waypoints.csv'),
-            '/sim_ws/src/stanley_controller/waypoints/example_waypoints.csv',
-            '/home/yeswanth/roboracer_ws/src/stanley_controller/waypoints/example_waypoints.csv',
-        ]
+    def _publish_initial_pose_once(self):
+        """Publishes initial pose once to teleport simulator car to track start."""
+        if hasattr(self, '_init_pose_published') and self._init_pose_published:
+            return
+        self._init_pose_published = True
+        self._init_pose_timer.cancel()
 
-        data = None
-        used_path = None
-        for cand in candidates:
-            if cand and os.path.isfile(cand):
-                try:
-                    # comments='#' correctly skips metadata lines regardless of count
-                    data = np.loadtxt(cand, delimiter=';', comments='#')
-                    used_path = cand
-                    self.get_logger().info(f'Loaded waypoints from: {cand}')
-                    break
-                except Exception as e:
-                    self.get_logger().warn(f'Failed to load {cand}: {e}')
+        msg = PoseWithCovarianceStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = 'map'
+        x0, y0, theta0 = self.track.start_pose
+        msg.pose.pose.position.x = float(x0)
+        msg.pose.pose.position.y = float(y0)
+        msg.pose.pose.position.z = 0.0
 
-        if data is None:
-            raise FileNotFoundError(f'Could not load waypoints from any candidate paths: {candidates}')
+        # Planar yaw quaternion (rotation around Z axis)
+        msg.pose.pose.orientation.x = 0.0
+        msg.pose.pose.orientation.y = 0.0
+        msg.pose.pose.orientation.z = math.sin(theta0 / 2.0)
+        msg.pose.pose.orientation.w = math.cos(theta0 / 2.0)
 
-        if data.ndim == 1:
-            data = data.reshape(1, -1)
+        # Standard covariance matrix
+        msg.pose.covariance[0] = 0.25
+        msg.pose.covariance[7] = 0.25
+        msg.pose.covariance[35] = 0.068
 
-        self.waypoints = data[:, [1, 2]]      # Columns 1, 2: x, y [m]
-        self.path_headings = data[:, 3]       # Column 3: psi_rad [rad]
-        self.num_waypoints = len(self.waypoints)
+        self.initial_pose_pub.publish(msg)
+        self.get_logger().info(
+            f"Published initial pose to {self.initialpose_topic}: "
+            f"x={x0:.3f}, y={y0:.3f}, yaw={math.degrees(theta0):.1f}°"
+        )
 
-        # Velocity profile (vx_mps)
-        if data.shape[1] > 5:
-            self.target_speeds = data[:, 5]   # Column 5: vx_mps [m/s]
-        else:
-            self.target_speeds = np.full(self.num_waypoints, self.max_speed)
-
-        # Arc length array (s_m) and closed loop track length
-        s_col = data[:, 0] if data.shape[1] > 0 else None
-        if s_col is not None and len(s_col) > 1 and np.all(np.diff(s_col) > 0.0):
-            self.s_arr = s_col
-            closure_dist = float(np.hypot(self.waypoints[0, 0] - self.waypoints[-1, 0],
-                                          self.waypoints[0, 1] - self.waypoints[-1, 1]))
-            self.track_length = float(s_col[-1]) + closure_dist
-        else:
-            # Fallback: compute cumulative Euclidean arc length from coordinates
-            diffs = np.diff(self.waypoints, axis=0)
-            dists = np.hypot(diffs[:, 0], diffs[:, 1])
-            self.s_arr = np.insert(np.cumsum(dists), 0, 0.0)
-            closure_dist = float(np.hypot(self.waypoints[0, 0] - self.waypoints[-1, 0],
-                                          self.waypoints[0, 1] - self.waypoints[-1, 1]))
-            self.track_length = float(self.s_arr[-1]) + closure_dist
-
-        # Curvature profile (kappa_radpm)
-        if data.shape[1] > 4 and np.any(np.abs(data[:, 4]) > 1e-5):
-            self.kappa = data[:, 4]           # Column 4: kappa_radpm [rad/m]
-        else:
-            # Fallback: estimate curvature from heading differences over arc length
-            dpsi = (np.diff(self.path_headings) + math.pi) % (2.0 * math.pi) - math.pi
-            ds = np.diff(self.s_arr)
-            ds = np.where(ds < 1e-4, 1e-4, ds)
-            k_diff = dpsi / ds
-            self.kappa = np.insert(k_diff, -1, k_diff[-1])
-
-    def _corner_speed_limit(self, s_cur, speed):
+    def _corner_speed_limit(self, s_cur: float, speed: float) -> float:
         """
         Minimum safe cornering speed based on maximum upcoming track curvature
         within a braking-aware lookahead horizon:
@@ -211,7 +246,7 @@ class StanleyControllerNode(Node):
 
         self.path_marker_pub.publish(m)
 
-    def _publish_target_marker(self, wpt_x, wpt_y, ref_x, ref_y):
+    def _publish_target_marker(self, wpt_x: float, wpt_y: float, ref_x: float, ref_y: float):
         """Publishes sphere marker at target waypoint and reference point."""
         m = Marker()
         m.header.frame_id = 'map'
@@ -316,12 +351,12 @@ class StanleyControllerNode(Node):
             v_corner = self._corner_speed_limit(s_cur, max(v_target, current_vel))
             v_target = min(v_target, v_corner)
 
-        # Dynamic steering modulation: smoothly taper speed up to 25% under hard steering lock
+        # Dynamic steering modulation: smoothly taper speed up to 25% under hard steering lock (U-turns)
         steer_ratio = abs(steering_angle) / max(self.max_steer, 1e-3)
         if steer_ratio > 0.5:
             v_target *= (1.0 - 0.25 * (steer_ratio - 0.5) / 0.5)
 
-        # Heading error safety guard
+        # Heading error safety guard: throttle speed if vehicle diverges significantly from road tangent
         if abs(heading_error) > 0.35:
             v_target *= 0.85
 
@@ -342,14 +377,28 @@ class StanleyControllerNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = StanleyControllerNode()
+
+    # Parse CLI positional argument for map_name (ignoring ROS 2 flags)
+    # Examples:
+    #   ros2 run stanley_controller stanley_controller_node.py Austin
+    #   ros2 run stanley_controller stanley_controller_node.py Monza --ros-args -p speed_scale:=0.65
+    map_override = None
+    for arg in sys.argv[1:]:
+        if arg == '--ros-args' or arg.startswith('--') or arg.startswith('__') or ':=' in arg:
+            break
+        if not arg.startswith('-'):
+            map_override = arg
+            break
+
+    node = StanleyControllerNode(map_name_override=map_override)
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':
