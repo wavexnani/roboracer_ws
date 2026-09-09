@@ -1,0 +1,26 @@
+# ROS 2 build artifacts
+build/
+install/
+log/
+
+# Editor and IDE configurations
+.vscode/
+.idea/
+*.swp
+*~
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Ignored packages in src (per configuration)
+src/f1tenth_gym/
+src/f1tenth_gym_ros/
+src/f1tenth_racetracks/
+src/gap_follow/
+src/lab1_pkg/
+src/pure_pursuit/
+src/safety_node/
+src/wall_follow/
