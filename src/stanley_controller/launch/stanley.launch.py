@@ -55,6 +55,8 @@ def launch_setup(context, *args, **kwargs):
 
     actions = [stanley_node]
 
+    autofocus_str = context.launch_configurations.get('autofocus', 'true').strip()
+
     # Optional simulator launch
     if launch_sim_bool:
         try:
@@ -63,7 +65,10 @@ def launch_setup(context, *args, **kwargs):
                 PythonLaunchDescriptionSource(
                     os.path.join(f1tenth_gym_share, 'launch', 'gym_bridge_launch.py')
                 ),
-                launch_arguments={'map': canonical_map}.items()
+                launch_arguments={
+                    'map': canonical_map,
+                    'autofocus': autofocus_str
+                }.items()
             )
             actions.append(sim_launch)
         except Exception as e:
@@ -93,11 +98,17 @@ def generate_launch_description():
         default_value='false',
         description='Whether to also launch the f1tenth_gym_ros simulation bridge'
     )
+    autofocus_arg = DeclareLaunchArgument(
+        'autofocus',
+        default_value='true',
+        description='Whether RViz camera auto-focuses on the car (true) or displays full static map (false)'
+    )
 
     return LaunchDescription([
         map_arg,
         waypoint_type_arg,
         speed_scale_arg,
         launch_sim_arg,
+        autofocus_arg,
         OpaqueFunction(function=launch_setup)
     ])
