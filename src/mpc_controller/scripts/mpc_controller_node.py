@@ -67,7 +67,7 @@ class MPCControllerNode(Node):
 
         # Vehicle & MPC Parameters
         self.declare_parameter('wheelbase', 0.33)
-        self.declare_parameter('speed_scale', 0.68)
+        self.declare_parameter('speed_scale', 0.60)
         self.declare_parameter('horizon', 10)
         self.declare_parameter('dt', 0.08)
 
@@ -134,6 +134,7 @@ class MPCControllerNode(Node):
 
         self._last_idx = 0
         self._last_control = (0.0, 0.0)  # (accel, steer)
+        self._last_pos = None  # To detect simulator resets
 
         # Simulator synchronization
         if self.sync_sim_map:
@@ -225,7 +226,15 @@ class MPCControllerNode(Node):
         """
         Extracts N+1 reference states along the trajectory starting from the
         closest point forward, spaced by approximately (v * dt).
+        Includes global search fallback when vehicle is far or reset.
         """
+        # Detect sudden position jump (e.g. simulator reset via /initialpose)
+        pos_jump = False
+        if self._last_pos is not None:
+            if math.hypot(cur_x - self._last_pos[0], cur_y - self._last_pos[1]) > 3.0:
+                pos_jump = True
+        self._last_pos = (cur_x, cur_y)
+
         # Local window search around last index with heading check
         window_backward = 20
         window_forward = 100
@@ -238,10 +247,25 @@ class MPCControllerNode(Node):
 
         # Heading alignment penalty
         dpsi = (self.path_headings[search_indices] - cur_yaw + math.pi) % (2.0 * math.pi) - math.pi
-        cost = dist_sq + 2.0 * (dpsi ** 2)
+        cost = dist_sq + 3.0 * (dpsi ** 2)
 
         best_local = int(np.argmin(cost))
         closest_idx = int(search_indices[best_local])
+        min_dist = math.sqrt(dist_sq[best_local])
+
+        # Global search fallback if vehicle is far from expected window or on reset
+        if min_dist > 3.0 or pos_jump:
+            all_dx = self.waypoints[:, 0] - cur_x
+            all_dy = self.waypoints[:, 1] - cur_y
+            all_dist_sq = all_dx * all_dx + all_dy * all_dy
+            all_dpsi = (self.path_headings - cur_yaw + math.pi) % (2.0 * math.pi) - math.pi
+            valid_mask = np.cos(all_dpsi) > 0.0
+            if np.any(valid_mask):
+                all_cost = np.where(valid_mask, all_dist_sq + 4.0 * (all_dpsi ** 2), np.inf)
+                closest_idx = int(np.argmin(all_cost))
+            else:
+                closest_idx = int(np.argmin(all_dist_sq))
+
         self._last_idx = closest_idx
 
         # Build N+1 horizon references based on cumulative arc length
@@ -285,21 +309,45 @@ class MPCControllerNode(Node):
         # 2. Extract reference horizon
         ref_horizon, closest_idx = self._extract_reference_horizon(cur_x, cur_y, cur_yaw, cur_v)
 
-        # 3. Solve MPC Optimization
-        res: MPCResult = self.optimizer.solve(
-            current_state=current_state,
-            ref_trajectory=ref_horizon,
-            prev_control=self._last_control
-        )
+        # 3. Heading check relative to closest path tangent
+        heading_err = (self.path_headings[closest_idx] - cur_yaw + math.pi) % (2.0 * math.pi) - math.pi
 
-        self._last_control = (res.accel, res.steering)
+        # If vehicle spun out or facing backwards (> 85 degrees), apply recovery steering
+        wrong_way = abs(heading_err) > math.radians(85)
+
+        if wrong_way:
+            # Safe recovery pursuit: steer directly towards path tangent and limit speed
+            steer_cmd = float(np.clip(heading_err, -self.optimizer.cfg.max_steer, self.optimizer.cfg.max_steer))
+            target_v = 1.0
+            self._last_control = (0.0, steer_cmd)
+        else:
+            # Solve MPC Optimization
+            res: MPCResult = self.optimizer.solve(
+                current_state=current_state,
+                ref_trajectory=ref_horizon,
+                prev_control=self._last_control
+            )
+            steer_cmd = float(res.steering)
+            target_v = float(res.target_speed)
+            self._last_control = (res.accel, res.steering)
+
+            # Dynamic corner speed modulation: smoothly taper speed up to 25% under hard steering
+            steer_ratio = abs(steer_cmd) / max(self.optimizer.cfg.max_steer, 1e-3)
+            if steer_ratio > 0.45:
+                target_v *= (1.0 - 0.25 * (steer_ratio - 0.45) / 0.55)
+
+            # Heading error safety guard: throttle speed if vehicle diverges from road tangent
+            if abs(heading_err) > 0.35:
+                target_v *= 0.85
+
+        target_v = float(np.clip(target_v, 0.5, self.scaled_target_speeds[closest_idx]))
 
         # 4. Publish drive command
         drive_msg = AckermannDriveStamped()
         drive_msg.header.stamp = self.get_clock().now().to_msg()
         drive_msg.header.frame_id = 'base_link'
-        drive_msg.drive.speed = float(res.target_speed)
-        drive_msg.drive.steering_angle = float(res.steering)
+        drive_msg.drive.speed = target_v
+        drive_msg.drive.steering_angle = steer_cmd
         self.drive_pub.publish(drive_msg)
 
         # 5. Visualizations
@@ -307,7 +355,7 @@ class MPCControllerNode(Node):
             # Immediate target marker
             self._publish_target_marker(ref_horizon[1, 0], ref_horizon[1, 1])
             # Green predicted trajectory ribbon
-            if len(res.predicted_x) > 0:
+            if not wrong_way and len(res.predicted_x) > 0:
                 self._publish_horizon_marker(res.predicted_x, res.predicted_y)
 
     def _publish_path_marker(self):
@@ -391,22 +439,27 @@ class MPCControllerNode(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    # Detect map name passed as CLI positional argument
+    # Detect map name passed as CLI positional argument (ignoring ROS 2 flags)
+    # Examples:
+    #   ros2 run mpc_controller mpc_controller_node.py Austin
+    #   ros2 run mpc_controller mpc_controller_node.py Monza --ros-args -p speed_scale:=0.65
     map_name_override = None
-    if len(sys.argv) > 1:
-        for arg in sys.argv[1:]:
-            if not arg.startswith('--') and not arg.startswith('__') and ':=' not in arg:
-                map_name_override = arg
-                break
+    for arg in sys.argv[1:]:
+        if arg == '--ros-args' or arg.startswith('--') or arg.startswith('__') or ':=' in arg:
+            break
+        if not arg.startswith('-'):
+            map_name_override = arg
+            break
 
     node = MPCControllerNode(map_name_override=map_name_override)
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

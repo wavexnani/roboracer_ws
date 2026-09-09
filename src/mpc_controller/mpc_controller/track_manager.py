@@ -88,19 +88,25 @@ class TrackManager:
         """
         if not query:
             return None
+        # Reject CLI option flags (e.g. -r, -p, --ros-args)
+        if query.startswith('-'):
+            return None
         tracks = cls.list_available_tracks()
         q_norm = query.lower().replace(' ', '').replace('_', '').replace('-', '')
+        if not q_norm:
+            return None
 
         # Exact normalized match
         for t in tracks:
             if t.lower().replace(' ', '').replace('_', '').replace('-', '') == q_norm:
                 return t
 
-        # Substring normalized match
-        for t in tracks:
-            t_norm = t.lower().replace(' ', '').replace('_', '').replace('-', '')
-            if q_norm in t_norm or t_norm in q_norm:
-                return t
+        # Substring normalized match (require at least 3 characters to prevent false positives from single letters)
+        if len(q_norm) >= 3:
+            for t in tracks:
+                t_norm = t.lower().replace(' ', '').replace('_', '').replace('-', '')
+                if q_norm in t_norm:
+                    return t
 
         return None
 
@@ -193,7 +199,8 @@ class TrackManager:
             # Standard 7-column or 6-column raceline: [s, x, y, psi, kappa, vx, (ax)]
             s_arr = data[:, 0]
             waypoints = data[:, [1, 2]]
-            headings = data[:, 3]
+            # Ensure headings are strictly normalized to [-pi, pi]
+            headings = (data[:, 3] + math.pi) % (2.0 * math.pi) - math.pi
             kappa = data[:, 4]
             target_speeds = data[:, 5]
         elif cols >= 2:
@@ -265,12 +272,12 @@ class TrackManager:
         Synchronizes f1tenth_gym_ros sim.yaml configuration with the selected track's map and start pose.
         Updates both source config and installed share config so the simulator loads the exact map.
         """
-        ws_root = cls.get_workspace_root()
-        target_yamls = [
-            custom_sim_yaml,
-            os.path.join(ws_root, 'src/f1tenth_gym_ros/config/sim.yaml'),
-            os.path.join(ws_root, 'install/f1tenth_gym_ros/share/f1tenth_gym_ros/config/sim.yaml'),
-        ]
+        ws_roots = [cls.get_workspace_root(), '/sim_ws', '/home/yeswanth/roboracer_ws']
+        target_yamls = [custom_sim_yaml]
+        for w in ws_roots:
+            if w:
+                target_yamls.append(os.path.join(w, 'src/f1tenth_gym_ros/config/sim.yaml'))
+                target_yamls.append(os.path.join(w, 'install/f1tenth_gym_ros/share/f1tenth_gym_ros/config/sim.yaml'))
 
         if not track_info.map_path_no_ext or not os.path.isfile(track_info.map_path_no_ext + '.yaml'):
             return False

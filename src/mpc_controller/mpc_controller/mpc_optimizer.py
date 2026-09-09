@@ -290,7 +290,18 @@ class MPCOptimizer:
 
             constr_row += nx
 
-        # 3. Slew rate constraints on controls: -max_rate <= u_{k+1} - u_k <= max_rate
+        # 3. Slew rate constraints on controls
+        max_delta_steer = self.cfg.max_steer_rate * self.cfg.dt
+        # Step 0 constraint against previously applied steering:
+        # -max_delta_steer <= u_0[1] - self.last_steer <= max_delta_steer
+        row_ind.append(constr_row)
+        col_ind.append(u_offset + 1)
+        data.append(1.0)
+        l_bounds[constr_row] = self.last_steer - max_delta_steer
+        u_bounds[constr_row] = self.last_steer + max_delta_steer
+        constr_row += 1
+
+        # Steps 1 to N-1: -max_delta_steer <= u_{k+1} - u_k <= max_delta_steer
         for k in range(N - 1):
             u_curr = u_offset + k * nu
             u_next = u_offset + (k + 1) * nu
@@ -302,8 +313,8 @@ class MPCOptimizer:
             row_ind.append(constr_row)
             col_ind.append(u_curr + 1)
             data.append(-1.0)
-            l_bounds[constr_row] = -self.cfg.max_steer_rate
-            u_bounds[constr_row] = self.cfg.max_steer_rate
+            l_bounds[constr_row] = -max_delta_steer
+            u_bounds[constr_row] = max_delta_steer
             constr_row += 1
 
         # Build sparse matrices
@@ -438,6 +449,19 @@ class MPCOptimizer:
                     x[3, k] >= self.cfg.min_speed,
                     x[3, k] <= self.cfg.max_speed
                 ]
+
+                # Slew rate constraints on steering
+                max_delta_steer = self.cfg.max_steer_rate * self.cfg.dt
+                if k == 0:
+                    constr += [
+                        u[1, 0] - self.last_steer >= -max_delta_steer,
+                        u[1, 0] - self.last_steer <= max_delta_steer
+                    ]
+                else:
+                    constr += [
+                        u[1, k] - u[1, k - 1] >= -max_delta_steer,
+                        u[1, k] - u[1, k - 1] <= max_delta_steer
+                    ]
 
             cost += cp.quad_form(x[:, N] - x_ref[N], Q_term)
             prob = cp.Problem(cp.Minimize(cost), constr)
