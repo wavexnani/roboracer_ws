@@ -289,42 +289,39 @@ TrackManager.sync_sim_yaml(track)
 
 ### 1. Build the Package
 ```bash
-cd ~/roboracer_ws
-colcon build --packages-select stanley_controller
+cd /sim_ws  # or ~/roboracer_ws
+colcon build --symlink-install --packages-select stanley_controller f1tenth_gym_ros
 source install/setup.bash
 ```
 
-### 2. Run with Map Name (Positional CLI Argument)
-Pass any track name directly after the node executable:
+### 2. Recommended: One-Command Launch (Simulator + Controller)
+Launches the F1TENTH Gym simulator on the target racetrack AND the Stanley controller together:
 ```bash
-# Run on Austin
-ros2 run stanley_controller stanley_controller_node.py Austin
+# Launch both simulator and controller on Levine
+ros2 launch stanley_controller stanley.launch.py map:=Levine launch_sim:=true
 
-# Run on Monza
-ros2 run stanley_controller stanley_controller_node.py Monza
+# Launch both simulator and controller on Austin
+ros2 launch stanley_controller stanley.launch.py map:=Austin launch_sim:=true
 
-# Run on Brands Hatch
-ros2 run stanley_controller stanley_controller_node.py BrandsHatch
-
-# Run on Spielberg (default)
-ros2 run stanley_controller stanley_controller_node.py Spielberg
+# Launch both on Monza with centerline trajectory profile
+ros2 launch stanley_controller stanley.launch.py map:=Monza waypoint_type:=centerline launch_sim:=true
 ```
 
-### 3. Run with Parameter Overrides
-```bash
-# Select centerline profile on Austin
-ros2 run stanley_controller stanley_controller_node.py Austin --ros-args -p waypoint_type:=centerline
+### 3. Alternative: Two-Terminal Workflow
+If you prefer to run the simulator and controller in separate terminals:
 
-# Run with custom speed scale
-ros2 run stanley_controller stanley_controller_node.py Monza --ros-args -p speed_scale:=0.75
+**Terminal 1 (Simulator):**
+```bash
+# Launch the simulator directly on any racetrack:
+ros2 launch f1tenth_gym_ros gym_bridge_launch.py map:=Levine
 ```
 
-### 4. Launch via ROS 2 Launch File
-Launch the controller with arguments:
+**Terminal 2 (Controller):**
 ```bash
-# Launch on Austin
-ros2 launch stanley_controller stanley.launch.py map:=Austin
-
-# Launch both simulator and controller together on Spielberg
-ros2 launch stanley_controller stanley.launch.py map:=Spielberg launch_sim:=true
+# Run Stanley controller on that track:
+ros2 run stanley_controller stanley_controller_node.py Levine
+# (or with the alias: rr stanley_controller stanley_controller_node.py Levine)
 ```
+
+> [!NOTE]
+> **Track Switching**: In ROS 2, `nav2_map_server` and `gym_bridge` load the racetrack occupancy grid texture into memory at launch time. If you switch to a new track, restart the simulator (or launch with `launch_sim:=true`) so the simulator reloads the new track image and spawns the car at the new starting grid.

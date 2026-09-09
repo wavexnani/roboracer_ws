@@ -25,10 +25,16 @@ except ImportError:
     # Support direct execution without sourcing setup.bash
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     cands = [
+        # Source tree paths
         os.path.abspath(os.path.join(cur_dir, '..')),
-        os.path.abspath(os.path.join(cur_dir, f'../python{sys.version_info.major}.{sys.version_info.minor}/site-packages')),
-        os.path.abspath(os.path.join(cur_dir, '../../../src/stanley_controller')),
+        os.path.abspath(os.path.join(cur_dir, '../../../../src/stanley_controller')),
+        '/sim_ws/src/stanley_controller',
         '/home/yeswanth/roboracer_ws/src/stanley_controller',
+        # Installed site-packages paths
+        os.path.abspath(os.path.join(cur_dir, f'../../python{sys.version_info.major}.{sys.version_info.minor}/site-packages')),
+        '/sim_ws/install/stanley_controller/lib/python3.8/site-packages',
+        '/sim_ws/install/stanley_controller/lib/python3.10/site-packages',
+        '/sim_ws/install/stanley_controller/lib/python3.12/site-packages',
     ]
     for c in cands:
         if os.path.isdir(c) and c not in sys.path:
@@ -140,14 +146,16 @@ class StanleyControllerNode(Node):
         self.drive_pub = self.create_publisher(AckermannDriveStamped, self.drive_topic, 10)
         self.odom_sub = self.create_subscription(Odometry, self.odom_topic, self.odom_callback, 10)
 
+        self._first_odom_received = False
+        self._init_pose_count = 0
         if self.publish_initial_pose:
             self.initial_pose_pub = self.create_publisher(
                 PoseWithCovarianceStamped,
                 self.initialpose_topic,
                 10
             )
-            # Timer to ensure subscriber discovery before publishing initial pose
-            self._init_pose_timer = self.create_timer(0.6, self._publish_initial_pose_once)
+            # Publish initial pose periodically until simulator odometry is received
+            self._init_pose_timer = self.create_timer(1.0, self._publish_initial_pose_tick)
 
         if self.visualize:
             self.target_marker_pub = self.create_publisher(Marker, self.target_marker_topic, 10)
@@ -156,17 +164,20 @@ class StanleyControllerNode(Node):
 
         self.get_logger().info(
             f"Stanley Controller Node initialized for track: '{self.track.track_name}' "
-            f"(profile: {self.track.waypoint_type}, {self.num_waypoints} pts, {self.track_length:.1f}m). "
-            f"Sub: {self.odom_topic}, Pub: {self.drive_topic}"
+            f"(profile: {self.track.waypoint_type}, {self.num_waypoints} pts, {self.track_length:.1f}m)."
+        )
+        self.get_logger().info(
+            f"Subscribed to: '{self.odom_topic}' | Publishing to: '{self.drive_topic}'"
         )
 
-    def _publish_initial_pose_once(self):
-        """Publishes initial pose once to teleport simulator car to track start."""
-        if hasattr(self, '_init_pose_published') and self._init_pose_published:
+    def _publish_initial_pose_tick(self):
+        """Periodically publishes initial pose until simulator connects."""
+        if self._first_odom_received:
+            if hasattr(self, '_init_pose_timer') and self._init_pose_timer:
+                self._init_pose_timer.cancel()
             return
-        self._init_pose_published = True
-        self._init_pose_timer.cancel()
 
+        self._init_pose_count += 1
         msg = PoseWithCovarianceStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = 'map'
@@ -187,10 +198,19 @@ class StanleyControllerNode(Node):
         msg.pose.covariance[35] = 0.068
 
         self.initial_pose_pub.publish(msg)
-        self.get_logger().info(
-            f"Published initial pose to {self.initialpose_topic}: "
-            f"x={x0:.3f}, y={y0:.3f}, yaw={math.degrees(theta0):.1f}°"
-        )
+
+        if self._init_pose_count == 1:
+            self.get_logger().info(
+                f"Published initial pose to {self.initialpose_topic}: "
+                f"x={x0:.3f}, y={y0:.3f}, yaw={math.degrees(theta0):.1f}°"
+            )
+        elif self._init_pose_count == 3:
+            self.get_logger().warn(
+                f"Waiting for simulator odometry on '{self.odom_topic}'... "
+                f"(If simulator is not running, run in another terminal: "
+                f"'ros2 launch f1tenth_gym_ros gym_bridge_launch.py map:={self.track.track_name}' "
+                f"or run both together: 'ros2 launch stanley_controller stanley.launch.py map:={self.track.track_name} launch_sim:=true')"
+            )
 
     def _corner_speed_limit(self, s_cur: float, speed: float) -> float:
         """
@@ -269,6 +289,14 @@ class StanleyControllerNode(Node):
         self.target_marker_pub.publish(m)
 
     def odom_callback(self, odom_msg: Odometry):
+        if not self._first_odom_received:
+            self._first_odom_received = True
+            if hasattr(self, '_init_pose_timer') and self._init_pose_timer:
+                self._init_pose_timer.cancel()
+            self.get_logger().info(
+                f"Connected to simulator on '{self.odom_topic}'! Stanley controller is now actively driving."
+            )
+
         # 1. Extract vehicle state
         pos = odom_msg.pose.pose.position
         q = odom_msg.pose.pose.orientation

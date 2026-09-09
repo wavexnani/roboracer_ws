@@ -6,24 +6,77 @@ Usage:
   ros2 launch stanley_controller stanley.launch.py map:=Austin
   ros2 launch stanley_controller stanley.launch.py map:=Monza waypoint_type:=centerline
   ros2 launch stanley_controller stanley.launch.py map:=Spielberg launch_sim:=true
+  ros2 launch stanley_controller stanley.launch.py map:=Levine launch_sim:=true
 """
 
 import os
+import sys
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
-from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
 
+def launch_setup(context, *args, **kwargs):
+    map_str = context.launch_configurations.get('map', 'Spielberg').strip()
+    waypoint_type_str = context.launch_configurations.get('waypoint_type', 'raceline').strip()
+    speed_scale_str = context.launch_configurations.get('speed_scale', '0.68').strip()
+    launch_sim_bool = context.launch_configurations.get('launch_sim', 'false').strip().lower() in ('true', '1')
+
+    # Pre-sync sim.yaml using TrackManager before launching nodes
+    for p in ['/sim_ws/src/stanley_controller', '/home/yeswanth/roboracer_ws/src/stanley_controller']:
+        if os.path.isdir(p) and p not in sys.path:
+            sys.path.insert(0, p)
+
+    try:
+        from stanley_controller.track_manager import TrackManager
+        track_info = TrackManager.load_track(map_str, waypoint_type=waypoint_type_str)
+        TrackManager.sync_sim_yaml(track_info)
+        canonical_map = track_info.track_name
+    except Exception as e:
+        print(f"[stanley.launch] Warning pre-syncing track '{map_str}': {e}")
+        canonical_map = map_str
+
+    # Stanley controller node
+    stanley_node = Node(
+        package='stanley_controller',
+        executable='stanley_controller_node.py',
+        name='stanley_controller_node',
+        output='screen',
+        parameters=[{
+            'map_name': canonical_map,
+            'waypoint_type': waypoint_type_str,
+            'speed_scale': float(speed_scale_str),
+            'sync_sim_map': True,
+            'publish_initial_pose': True
+        }]
+    )
+
+    actions = [stanley_node]
+
+    # Optional simulator launch
+    if launch_sim_bool:
+        try:
+            f1tenth_gym_share = get_package_share_directory('f1tenth_gym_ros')
+            sim_launch = IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    os.path.join(f1tenth_gym_share, 'launch', 'gym_bridge_launch.py')
+                ),
+                launch_arguments={'map': canonical_map}.items()
+            )
+            actions.append(sim_launch)
+        except Exception as e:
+            print(f"[stanley.launch] Warning including gym_bridge_launch: {e}")
+
+    return actions
+
+
 def generate_launch_description():
-    # Declare launch arguments
     map_arg = DeclareLaunchArgument(
         'map',
         default_value='Spielberg',
-        description='Name of racetrack map from f1tenth_racetracks (e.g. Austin, Monza, Spielberg, BrandsHatch)'
+        description='Name of racetrack map from f1tenth_racetracks (e.g. Austin, Monza, Spielberg, Levine, BrandsHatch)'
     )
     waypoint_type_arg = DeclareLaunchArgument(
         'waypoint_type',
@@ -41,40 +94,10 @@ def generate_launch_description():
         description='Whether to also launch the f1tenth_gym_ros simulation bridge'
     )
 
-    map_name = LaunchConfiguration('map')
-    waypoint_type = LaunchConfiguration('waypoint_type')
-    speed_scale = LaunchConfiguration('speed_scale')
-    launch_sim = LaunchConfiguration('launch_sim')
-
-    # Stanley controller node
-    stanley_node = Node(
-        package='stanley_controller',
-        executable='stanley_controller_node.py',
-        name='stanley_controller_node',
-        output='screen',
-        parameters=[{
-            'map_name': map_name,
-            'waypoint_type': waypoint_type,
-            'speed_scale': speed_scale,
-            'sync_sim_map': True,
-            'publish_initial_pose': True
-        }]
-    )
-
-    # Optional simulator launch
-    f1tenth_gym_share = get_package_share_directory('f1tenth_gym_ros')
-    sim_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(f1tenth_gym_share, 'launch', 'gym_bridge_launch.py')
-        ),
-        condition=IfCondition(launch_sim)
-    )
-
     return LaunchDescription([
         map_arg,
         waypoint_type_arg,
         speed_scale_arg,
         launch_sim_arg,
-        stanley_node,
-        sim_launch
+        OpaqueFunction(function=launch_setup)
     ])
