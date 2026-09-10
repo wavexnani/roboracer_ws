@@ -216,8 +216,8 @@ class TrackManager:
             kappa = np.copy(data[:, 4])
             target_speeds = np.copy(data[:, 5])
 
-            # Safety clearance buffer: check map SDF and nudge waypoints away from obstacles
-            safe_dist = 0.40
+            # Safety clearance buffer: check map SDF and nudge waypoints away from obstacles smoothly
+            safe_dist = 0.42
             if map_yaml and os.path.isfile(map_yaml) and map_png and os.path.isfile(map_png):
                 try:
                     from PIL import Image
@@ -242,9 +242,10 @@ class TrackManager:
                         cl_d = np.loadtxt(cl_cands[0], delimiter=sep_cl, comments='#')
                         cl_xy = cl_d[:, :2]
 
-                    safe_dist = 0.42
                     if cl_xy is not None:
-                        for iteration in range(3):
+                        # 1. Continuous shift field with spatial smoothing
+                        for it in range(5):
+                            shifts = np.zeros_like(waypoints)
                             for i in range(len(waypoints)):
                                 wx, wy = waypoints[i, 0], waypoints[i, 1]
                                 px = int((wx - origin[0]) / res)
@@ -258,12 +259,13 @@ class TrackManager:
                                     v_to_cl = np.array([cx - wx, cy - wy])
                                     dist_to_cl = math.hypot(v_to_cl[0], v_to_cl[1])
                                     if dist_to_cl > 1e-3:
-                                        shift = safe_dist - d + 0.05
-                                        waypoints[i] += (v_to_cl / dist_to_cl) * shift
+                                        shifts[i] = (v_to_cl / dist_to_cl) * (safe_dist - d)
 
-                        waypoints[:, 0] = gaussian_filter1d(waypoints[:, 0], sigma=0.5, mode='wrap')
-                        waypoints[:, 1] = gaussian_filter1d(waypoints[:, 1], sigma=0.5, mode='wrap')
+                            shifts[:, 0] = gaussian_filter1d(shifts[:, 0], sigma=2.0, mode='wrap')
+                            shifts[:, 1] = gaussian_filter1d(shifts[:, 1], sigma=2.0, mode='wrap')
+                            waypoints += shifts * 1.20
 
+                        # 2. Strict obstacle clearance floor check
                         for i in range(len(waypoints)):
                             wx, wy = waypoints[i, 0], waypoints[i, 1]
                             px = int((wx - origin[0]) / res)
@@ -276,29 +278,64 @@ class TrackManager:
                                 v_to_cl = np.array([cx - wx, cy - wy])
                                 dist_to_cl = math.hypot(v_to_cl[0], v_to_cl[1])
                                 if dist_to_cl > 1e-3:
-                                    shift = safe_dist - d + 0.02
-                                    waypoints[i] += (v_to_cl / dist_to_cl) * shift
+                                    waypoints[i] += (v_to_cl / dist_to_cl) * (safe_dist - d + 0.02)
 
-                        # Recompute arc length and headings after safety shift
+                        # Recompute arc length after safety shift
                         diffs = np.diff(waypoints, axis=0)
                         dists = np.hypot(diffs[:, 0], diffs[:, 1])
                         s_arr = np.insert(np.cumsum(dists), 0, 0.0)
 
-                        dx = np.gradient(waypoints[:, 0])
-                        dy = np.gradient(waypoints[:, 1])
-                        headings = np.arctan2(dy, dx)
+                        # Analytic 2D parametric curvature with periodic circular padding
+                        N_pad = min(50, len(waypoints) // 4)
+                        x_pad = np.pad(waypoints[:, 0], N_pad, mode='wrap')
+                        y_pad = np.pad(waypoints[:, 1], N_pad, mode='wrap')
 
-                        dpsi = (np.gradient(headings) + math.pi) % (2.0 * math.pi) - math.pi
-                        ds = np.gradient(s_arr)
-                        ds = np.where(ds < 1e-4, 1e-4, ds)
-                        kappa = dpsi / ds
+                        dx = np.gradient(x_pad)
+                        dy = np.gradient(y_pad)
+                        ddx = np.gradient(dx)
+                        ddy = np.gradient(dy)
+
+                        denom = (dx**2 + dy**2)**1.5
+                        denom = np.where(denom < 1e-6, 1e-6, denom)
+                        kappa_pad = (dx * ddy - dy * ddx) / denom
+                        kappa = kappa_pad[N_pad:-N_pad]
+                        kappa = gaussian_filter1d(kappa, sigma=2.5, mode='wrap')
+
+                        headings_pad = np.arctan2(dy, dx)
+                        headings = headings_pad[N_pad:-N_pad]
+                        headings = (headings + math.pi) % (2.0 * math.pi) - math.pi
+
                 except Exception as e:
                     print(f"[TrackManager] Warning during map safety clearance check: {e}")
 
-            # Dynamic curvature-based speed profiling (max lateral acceleration 2.8 m/s^2)
+            # Dynamic curvature-based speed profiling (max lateral acceleration lat_accel_max m/s^2)
+            lat_accel_max = min(lat_accel_max, 2.5)
             k_abs = np.abs(kappa)
             v_curv = np.where(k_abs > 0.12, np.sqrt(lat_accel_max / np.maximum(k_abs, 1e-4)), target_speeds)
             target_speeds = np.minimum(target_speeds, v_curv)
+
+            # Smooth forward-backward longitudinal acceleration/deceleration profiling
+            diffs = np.diff(waypoints, axis=0)
+            dists = np.hypot(diffs[:, 0], diffs[:, 1])
+            a_brake_max = 2.0
+            a_accel_max = 2.5
+            N_pts = len(target_speeds)
+            for _ in range(2):
+                # Backward pass (braking into corners)
+                for i in range(N_pts - 1, -1, -1):
+                    i_next = (i + 1) % N_pts
+                    ds_step = dists[i] if i < len(dists) else dists[-1]
+                    v_max_brake = math.sqrt(target_speeds[i_next]**2 + 2.0 * a_brake_max * ds_step)
+                    if target_speeds[i] > v_max_brake:
+                        target_speeds[i] = v_max_brake
+
+                # Forward pass (accelerating out of corners)
+                for i in range(N_pts):
+                    i_prev = (i - 1) % N_pts
+                    ds_step = dists[i_prev] if i_prev < len(dists) else dists[0]
+                    v_max_accel = math.sqrt(target_speeds[i_prev]**2 + 2.0 * a_accel_max * ds_step)
+                    if target_speeds[i] > v_max_accel:
+                        target_speeds[i] = v_max_accel
 
         elif cols >= 2:
             # 4-column centerline [x, y, w_right, w_left] or 2-column [x, y]

@@ -53,14 +53,14 @@ def evaluate_improved_map(
     env = gym.make('f110_gym:f110-v0', map=map_path_no_ext, map_ext='.png', num_agents=1)
     obs, _, done, _ = env.reset(np.array([[start_pose[0], start_pose[1], start_pose[2]]]))
     
-    # Tuned MPC optimizer
+    # Tuned Balanced MPC optimizer (anti-shaking)
     cfg = MPCConfig(
-        max_steer_rate=3.2,
-        w_x=10.0,
-        w_y=10.0,
-        w_psi=3.5,
-        w_delta=0.15,
-        w_ddelta=0.8,
+        max_steer_rate=2.8,
+        w_x=8.0,
+        w_y=8.0,
+        w_psi=3.0,
+        w_delta=0.25,
+        w_ddelta=1.5,
         w_v=0.8
     )
     optimizer = MPCOptimizer(cfg)
@@ -79,10 +79,13 @@ def evaluate_improved_map(
     sim_steps_per_mpc = max(1, int(round((1.0 / mpc_rate_hz) / sim_dt)))
     ct_errors = []
     speeds = []
+    steer_history = []
     
     total_dist_traveled = 0.0
     prev_xy = (obs['poses_x'][0], obs['poses_y'][0])
     current_steer_cmd = 0.0
+    filtered_steer = 0.0
+    steer_ema_alpha = 0.90
     current_speed_cmd = 0.0
     step_count = 0
     
@@ -129,9 +132,13 @@ def evaluate_improved_map(
             cand_pts = waypoints[search_indices]
             dist_sq = (cand_pts[:, 0] - cur_x)**2 + (cand_pts[:, 1] - cur_y)**2
             dpsi = (path_headings[search_indices] - cur_yaw + math.pi) % (2.0 * math.pi) - math.pi
-            cost = dist_sq + 3.0 * (dpsi ** 2)
+            forward_mask = np.cos(dpsi) > 0.0
             
-            best_local = int(np.argmin(cost))
+            if np.any(forward_mask):
+                best_local = int(np.argmin(np.where(forward_mask, dist_sq, np.inf)))
+            else:
+                best_local = int(np.argmin(dist_sq))
+                
             closest_idx = int(search_indices[best_local])
             min_dist = math.sqrt(dist_sq[best_local])
             
@@ -184,6 +191,7 @@ def evaluate_improved_map(
             target_v = float(np.clip(target_v, 0.5, scaled_speeds[closest_idx]))
             current_steer_cmd = steer_cmd
             current_speed_cmd = target_v
+            steer_history.append(current_steer_cmd)
             
         obs, _, done, _ = env.step(np.array([[current_steer_cmd, current_speed_cmd]]))
         sim_time += sim_dt
@@ -193,6 +201,12 @@ def evaluate_improved_map(
     avg_speed = float(np.mean(speeds)) if speeds else 0.0
     max_ct = float(np.max(ct_errors)) if ct_errors else 0.0
     avg_ct = float(np.mean(ct_errors)) if ct_errors else 0.0
+    
+    # Steering smoothness telemetry
+    steer_diffs = np.abs(np.diff(steer_history)) if len(steer_history) > 1 else np.array([0.0])
+    mean_steer_rate = float(np.mean(steer_diffs) * mpc_rate_hz)
+    max_steer_rate = float(np.max(steer_diffs) * mpc_rate_hz)
+    steer_std = float(np.std(steer_history)) if steer_history else 0.0
     
     return {
         'track_name': track_name,
@@ -206,6 +220,9 @@ def evaluate_improved_map(
         'avg_speed': round(avg_speed, 2),
         'max_crosstrack_err': round(max_ct, 2),
         'avg_crosstrack_err': round(avg_ct, 2),
+        'mean_steer_rate': round(mean_steer_rate, 3),
+        'max_steer_rate': round(max_steer_rate, 3),
+        'steer_std': round(steer_std, 3),
         'crash_reason': crash_reason,
         'crash_location': crash_loc
     }
@@ -231,7 +248,9 @@ if __name__ == '__main__':
     crashes = 0
     out_files = [
         '/sim_ws/src/mpc_controller/resolved_results.json',
-        '/home/yeswanth/roboracer_ws/src/mpc_controller/resolved_results.json'
+        '/home/yeswanth/roboracer_ws/src/mpc_controller/resolved_results.json',
+        '/sim_ws/src/mpc_controller/smooth_results.json',
+        '/home/yeswanth/roboracer_ws/src/mpc_controller/smooth_results.json'
     ]
     
     for idx, tname in enumerate(tracks_to_test, 1):
@@ -240,7 +259,7 @@ if __name__ == '__main__':
             res = evaluate_improved_map(tname, speed_scale=0.75)
             elapsed = time.time() - t0
             status_str = "PASSED" if res['completed'] else ("CRASHED" if res['crashed'] else "TIMEOUT")
-            print(f"[{idx:02d}/{len(tracks_to_test):02d}] {tname:15s} | {status_str:8s} | Progress: {res['completion_pct']:5.1f}% ({res['distance_traveled']:.1f}/{res['track_length']:.1f}m) | Lap Time: {res['lap_time']}s | Avg CTE: {res['avg_crosstrack_err']:.2f}m (took {elapsed:.1f}s)")
+            print(f"[{idx:02d}/{len(tracks_to_test):02d}] {tname:15s} | {status_str:8s} | Progress: {res['completion_pct']:5.1f}% | Lap: {res['lap_time']}s | CTE: {res['avg_crosstrack_err']:.2f}m | Steer Rate: {res.get('mean_steer_rate', 0.0):.2f}/{res.get('max_steer_rate', 0.0):.2f} rad/s ({elapsed:.1f}s)")
             if res['completed']:
                 completions += 1
             else:

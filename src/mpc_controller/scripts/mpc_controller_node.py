@@ -72,13 +72,14 @@ class MPCControllerNode(Node):
         self.declare_parameter('dt', 0.08)
 
         # MPC Cost Weights
-        self.declare_parameter('w_x', 10.0)
-        self.declare_parameter('w_y', 10.0)
-        self.declare_parameter('w_psi', 3.5)
+        self.declare_parameter('w_x', 8.0)
+        self.declare_parameter('w_y', 8.0)
+        self.declare_parameter('w_psi', 3.0)
         self.declare_parameter('w_v', 0.8)
-        self.declare_parameter('w_delta', 0.15)
-        self.declare_parameter('w_ddelta', 0.8)
+        self.declare_parameter('w_delta', 0.25)
+        self.declare_parameter('w_ddelta', 1.5)
         self.declare_parameter('w_a', 0.1)
+        self.declare_parameter('steer_ema_alpha', 1.0)
 
         # Topic Names
         self.declare_parameter('odom_topic', '/ego_racecar/odom')
@@ -135,6 +136,8 @@ class MPCControllerNode(Node):
         self._last_idx = 0
         self._last_control = (0.0, 0.0)  # (accel, steer)
         self._last_pos = None  # To detect simulator resets
+        self.steer_ema_alpha = float(self.get_parameter('steer_ema_alpha').value)
+        self._filtered_steer = 0.0
 
         # Simulator synchronization
         if self.sync_sim_map:
@@ -245,11 +248,15 @@ class MPCControllerNode(Node):
         dy = cand_pts[:, 1] - cur_y
         dist_sq = dx * dx + dy * dy
 
-        # Heading alignment penalty
+        # Heading directional mask: only search waypoints in the forward direction
         dpsi = (self.path_headings[search_indices] - cur_yaw + math.pi) % (2.0 * math.pi) - math.pi
-        cost = dist_sq + 3.0 * (dpsi ** 2)
+        forward_mask = np.cos(dpsi) > 0.0
 
-        best_local = int(np.argmin(cost))
+        if np.any(forward_mask):
+            best_local = int(np.argmin(np.where(forward_mask, dist_sq, np.inf)))
+        else:
+            best_local = int(np.argmin(dist_sq))
+
         closest_idx = int(search_indices[best_local])
         min_dist = math.sqrt(dist_sq[best_local])
 
@@ -342,12 +349,15 @@ class MPCControllerNode(Node):
 
         target_v = float(np.clip(target_v, 0.5, self.scaled_target_speeds[closest_idx]))
 
+        # Smooth commanded steering via 1st-order EMA filter to eliminate servo chatter
+        self._filtered_steer = self.steer_ema_alpha * steer_cmd + (1.0 - self.steer_ema_alpha) * self._filtered_steer
+
         # 4. Publish drive command
         drive_msg = AckermannDriveStamped()
         drive_msg.header.stamp = self.get_clock().now().to_msg()
         drive_msg.header.frame_id = 'base_link'
         drive_msg.drive.speed = target_v
-        drive_msg.drive.steering_angle = steer_cmd
+        drive_msg.drive.steering_angle = float(self._filtered_steer)
         self.drive_pub.publish(drive_msg)
 
         # 5. Visualizations
