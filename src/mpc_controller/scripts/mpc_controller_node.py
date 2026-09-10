@@ -26,6 +26,7 @@ from nav_msgs.msg import Odometry
 from ackermann_msgs.msg import AckermannDriveStamped
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point, PoseWithCovarianceStamped
+from sensor_msgs.msg import LaserScan
 
 try:
     from mpc_controller.track_manager import TrackManager, TrackInfo
@@ -82,6 +83,16 @@ class MPCControllerNode(Node):
         self.declare_parameter('steer_ema_alpha', 1.0)
         self.declare_parameter('steer_deadband_rad', 0.0035)  # ~0.20 deg deadband to suppress micro-vibrations
 
+        # Adaptive Velocity & Safety Parameters
+        self.declare_parameter('enable_adaptive_speed', True)
+        self.declare_parameter('max_straight_speed', 7.5)
+        self.declare_parameter('min_corner_speed', 1.8)
+        self.declare_parameter('max_lat_accel', 2.5)
+        self.declare_parameter('max_accel', 2.5)
+        self.declare_parameter('max_decel', 3.2)
+        self.declare_parameter('safety_margin_dist', 0.50)
+        self.declare_parameter('scan_topic', '/scan')
+
         # Topic Names
         self.declare_parameter('odom_topic', '/ego_racecar/odom')
         self.declare_parameter('drive_topic', '/drive')
@@ -97,6 +108,15 @@ class MPCControllerNode(Node):
         self.publish_initial_pose = self.get_parameter('publish_initial_pose').value
         self.speed_scale = max(0.1, min(1.0, float(self.get_parameter('speed_scale').value)))
         self.visualize = self.get_parameter('visualize').value
+
+        self.enable_adaptive_speed = bool(self.get_parameter('enable_adaptive_speed').value)
+        self.max_straight_speed = float(self.get_parameter('max_straight_speed').value)
+        self.min_corner_speed = float(self.get_parameter('min_corner_speed').value)
+        self.max_lat_accel = float(self.get_parameter('max_lat_accel').value)
+        self.max_accel = float(self.get_parameter('max_accel').value)
+        self.max_decel = float(self.get_parameter('max_decel').value)
+        self.safety_margin_dist = float(self.get_parameter('safety_margin_dist').value)
+        self.scan_topic = self.get_parameter('scan_topic').value
 
         self.odom_topic = self.get_parameter('odom_topic').value
         self.drive_topic = self.get_parameter('drive_topic').value
@@ -123,7 +143,12 @@ class MPCControllerNode(Node):
         self.track: TrackInfo = TrackManager.load_track(
             track_name=target_map,
             waypoint_type=self.waypoint_type,
-            custom_csv_path=self.custom_waypoints_path if self.custom_waypoints_path else None
+            custom_csv_path=self.custom_waypoints_path if self.custom_waypoints_path else None,
+            max_straight_speed=self.max_straight_speed,
+            min_corner_speed=self.min_corner_speed,
+            lat_accel_max=self.max_lat_accel,
+            a_brake_max=self.max_decel,
+            a_accel_max=self.max_accel
         )
 
         self.waypoints = self.track.waypoints
@@ -141,6 +166,8 @@ class MPCControllerNode(Node):
         self.steer_deadband_rad = float(self.get_parameter('steer_deadband_rad').value)
         self._filtered_steer = 0.0
         self._last_steer_cmd = 0.0
+        self._last_speed_cmd = 0.0
+        self._last_scan: Optional[LaserScan] = None
 
         # Simulator synchronization
         if self.sync_sim_map:
@@ -154,6 +181,8 @@ class MPCControllerNode(Node):
         # ROS 2 Interfaces
         self.drive_pub = self.create_publisher(AckermannDriveStamped, self.drive_topic, 10)
         self.odom_sub = self.create_subscription(Odometry, self.odom_topic, self.odom_callback, 10)
+        if self.enable_adaptive_speed:
+            self.scan_sub = self.create_subscription(LaserScan, self.scan_topic, self.scan_callback, 10)
 
         self._first_odom_received = False
         self._init_pose_count = 0
@@ -295,6 +324,10 @@ class MPCControllerNode(Node):
 
         return ref_horizon, closest_idx
 
+    def scan_callback(self, scan_msg: LaserScan):
+        """Stores latest LiDAR scan for forward safety corridor and obstacle analysis."""
+        self._last_scan = scan_msg
+
     def odom_callback(self, odom_msg: Odometry):
         if not self._first_odom_received:
             self._first_odom_received = True
@@ -328,8 +361,9 @@ class MPCControllerNode(Node):
         if wrong_way:
             # Safe recovery pursuit: steer directly towards path tangent and limit speed
             steer_cmd = float(np.clip(heading_err, -self.optimizer.cfg.max_steer, self.optimizer.cfg.max_steer))
-            target_v = 1.0
+            target_v = self.min_corner_speed
             self._last_control = (0.0, steer_cmd)
+            self._last_speed_cmd = target_v
         else:
             # Solve MPC Optimization
             res: MPCResult = self.optimizer.solve(
@@ -338,19 +372,54 @@ class MPCControllerNode(Node):
                 prev_control=self._last_control
             )
             steer_cmd = float(res.steering)
-            target_v = float(res.target_speed)
             self._last_control = (res.accel, res.steering)
 
-            # Dynamic corner speed modulation: smoothly taper speed up to 25% under hard steering
+            # 1. Base target speed from pre-braked curvature lookahead profile
+            v_target = float(self.scaled_target_speeds[closest_idx])
+
+            # 2. Dynamic LiDAR obstacle & Cartesian forward corridor evaluation
+            if self.enable_adaptive_speed and self._last_scan is not None:
+                ranges = np.array(self._last_scan.ranges)
+                n_beams = len(ranges)
+                angle_min = self._last_scan.angle_min
+                angle_inc = self._last_scan.angle_increment if self._last_scan.angle_increment > 0 else (4.7 / max(n_beams, 1))
+                angles = angle_min + np.arange(n_beams) * angle_inc - steer_cmd  # Relative to steered direction
+                valid = np.isfinite(ranges) & (ranges >= max(0.10, self._last_scan.range_min)) & (ranges <= min(25.0, self._last_scan.range_max))
+                if np.any(valid):
+                    r_val = ranges[valid]
+                    th_val = angles[valid]
+                    x_body = r_val * np.cos(th_val)
+                    y_body = r_val * np.sin(th_val)
+                    # Driving corridor directly in front of the vehicle (+/- 0.28m lateral)
+                    corridor = (x_body > 0.35) & (x_body < 10.0) & (np.abs(y_body) <= 0.28)
+                    if np.any(corridor):
+                        d_obs = float(np.min(x_body[corridor]))
+                        v_obs = math.sqrt(2.0 * self.max_decel * max(0.0, d_obs - self.safety_margin_dist))
+                        v_target = min(v_target, max(self.min_corner_speed, v_obs))
+
+                    # Proximity safety: if very close to obstacle or wall (< 0.35m), scale down
+                    min_scan_all = float(np.min(ranges[valid]))
+                    if min_scan_all < 0.35:
+                        v_target *= max(0.70, min_scan_all / 0.35)
+
+            # 3. Dynamic corner speed modulation: smoothly taper speed up to 25% under hard steering
             steer_ratio = abs(steer_cmd) / max(self.optimizer.cfg.max_steer, 1e-3)
             if steer_ratio > 0.45:
-                target_v *= (1.0 - 0.25 * (steer_ratio - 0.45) / 0.55)
+                v_target *= (1.0 - 0.25 * (steer_ratio - 0.45) / 0.55)
 
-            # Heading error safety guard: throttle speed if vehicle diverges from road tangent
+            # 4. Heading error safety guard: throttle speed if vehicle diverges from road tangent
             if abs(heading_err) > 0.35:
-                target_v *= 0.85
+                v_target *= 0.85
 
-        target_v = float(np.clip(target_v, 0.5, self.scaled_target_speeds[closest_idx]))
+            # 5. Smooth longitudinal rate-limiting (acceleration / braking slew)
+            dt_slew = self.dt if self.dt > 0 else 0.08
+            v_cmd_max = self._last_speed_cmd + self.max_accel * dt_slew
+            v_cmd_min = self._last_speed_cmd - self.max_decel * dt_slew
+            if self._last_speed_cmd < 0.2 and v_target > 0.5:
+                v_cmd_max = max(v_cmd_max, 0.8)
+
+            target_v = float(np.clip(v_target, max(0.0, v_cmd_min), min(self.max_straight_speed, v_cmd_max)))
+            self._last_speed_cmd = target_v
 
         # Micro-deadband filter: suppress sub-0.2 degree servo chatter and tiny vibrations
         if abs(steer_cmd - self._last_steer_cmd) < self.steer_deadband_rad:

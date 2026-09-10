@@ -32,13 +32,29 @@ from mpc_controller.mpc_optimizer import MPCOptimizer, MPCConfig
 
 def evaluate_improved_map(
     track_name: str,
-    speed_scale: float = 0.75,
+    speed_scale: float = 1.0,
+    max_straight_speed: float = 7.5,
+    min_corner_speed: float = 1.8,
+    lat_accel_max: float = 2.5,
+    max_accel: float = 2.5,
+    max_decel: float = 3.2,
+    a_brake_max: float = 2.0,
+    safety_margin_dist: float = 0.50,
+    steer_deadband: float = 0.0035,
     max_sim_time: Optional[float] = None,
     mpc_rate_hz: float = 25.0,
     sim_dt: float = 0.01
 ) -> dict:
-    """Evaluates resolved MPC controller on a racetrack map."""
-    track = TrackManager.load_track(track_name, waypoint_type='raceline', lat_accel_max=2.8)
+    """Evaluates resolved MPC controller with adaptive velocity on a racetrack map."""
+    track = TrackManager.load_track(
+        track_name=track_name,
+        waypoint_type='raceline',
+        max_straight_speed=max_straight_speed,
+        min_corner_speed=min_corner_speed,
+        lat_accel_max=lat_accel_max,
+        a_brake_max=a_brake_max,
+        a_accel_max=max_accel
+    )
     waypoints = np.copy(track.waypoints)
     path_headings = np.copy(track.headings)
     s_arr = np.copy(track.s_arr)
@@ -69,6 +85,8 @@ def evaluate_improved_map(
     last_idx = 0
     last_control = (0.0, 0.0)
     last_pos = None
+    last_speed_cmd = 0.0
+    last_steer_cmd = 0.0
     
     sim_time = 0.0
     crashed = False
@@ -84,8 +102,6 @@ def evaluate_improved_map(
     total_dist_traveled = 0.0
     prev_xy = (obs['poses_x'][0], obs['poses_y'][0])
     current_steer_cmd = 0.0
-    filtered_steer = 0.0
-    steer_ema_alpha = 0.90
     current_speed_cmd = 0.0
     step_count = 0
     
@@ -170,8 +186,9 @@ def evaluate_improved_map(
             
             if wrong_way:
                 steer_cmd = float(np.clip(heading_err, -cfg.max_steer, cfg.max_steer))
-                target_v = 1.0
+                target_v = min_corner_speed
                 last_control = (0.0, steer_cmd)
+                last_speed_cmd = target_v
             else:
                 res = optimizer.solve(
                     current_state=np.array([cur_x, cur_y, cur_yaw, cur_v]),
@@ -179,16 +196,58 @@ def evaluate_improved_map(
                     prev_control=last_control
                 )
                 steer_cmd = float(res.steering)
-                target_v = float(res.target_speed)
                 last_control = (res.accel, res.steering)
                 
+                # 1. Base target speed from pre-braked curvature lookahead profile
+                v_target = float(scaled_speeds[closest_idx])
+
+                # 2. Dynamic LiDAR Cartesian forward corridor evaluation
+                ranges = np.array(obs['scans'][0])
+                n_beams = len(ranges)
+                angles = np.linspace(-2.356194, 2.356194, n_beams) - steer_cmd  # Steer-relative angle
+                valid = np.isfinite(ranges) & (ranges >= 0.10) & (ranges <= 25.0)
+                if np.any(valid):
+                    r_val = ranges[valid]
+                    th_val = angles[valid]
+                    x_body = r_val * np.cos(th_val)
+                    y_body = r_val * np.sin(th_val)
+                    # Drivable corridor directly in front of the vehicle (+/- 0.28m lateral)
+                    corridor = (x_body > 0.35) & (x_body < 10.0) & (np.abs(y_body) <= 0.28)
+                    if np.any(corridor):
+                        d_obs = float(np.min(x_body[corridor]))
+                        v_obs = math.sqrt(2.0 * max_decel * max(0.0, d_obs - safety_margin_dist))
+                        v_target = min(v_target, max(min_corner_speed, v_obs))
+
+                    # Proximity safety: if very close to obstacle or wall (< 0.35m), scale down
+                    min_scan_all = float(np.min(ranges[valid]))
+                    if min_scan_all < 0.35:
+                        v_target *= max(0.70, min_scan_all / 0.35)
+
+                # 3. Dynamic corner speed modulation: smoothly taper speed up to 25% under hard steering
                 steer_ratio = abs(steer_cmd) / max(cfg.max_steer, 1e-3)
                 if steer_ratio > 0.45:
-                    target_v *= (1.0 - 0.25 * (steer_ratio - 0.45) / 0.55)
+                    v_target *= (1.0 - 0.25 * (steer_ratio - 0.45) / 0.55)
+
+                # 4. Heading error safety guard
                 if abs(heading_err) > 0.35:
-                    target_v *= 0.85
-                    
-            target_v = float(np.clip(target_v, 0.5, scaled_speeds[closest_idx]))
+                    v_target *= 0.85
+
+                # 5. Smooth longitudinal rate-limiting (acceleration / braking slew)
+                dt_slew = (1.0 / mpc_rate_hz)
+                v_cmd_max = last_speed_cmd + max_accel * dt_slew
+                v_cmd_min = last_speed_cmd - max_decel * dt_slew
+                if last_speed_cmd < 0.2 and v_target > 0.5:
+                    v_cmd_max = max(v_cmd_max, 0.8)
+
+                target_v = float(np.clip(v_target, max(0.0, v_cmd_min), min(max_straight_speed, v_cmd_max)))
+                last_speed_cmd = target_v
+
+            # 6. Micro-deadband filter on steering to suppress tiny oscillations
+            if abs(steer_cmd - last_steer_cmd) < steer_deadband:
+                steer_cmd = last_steer_cmd
+            else:
+                last_steer_cmd = steer_cmd
+
             current_steer_cmd = steer_cmd
             current_speed_cmd = target_v
             steer_history.append(current_steer_cmd)
@@ -199,6 +258,8 @@ def evaluate_improved_map(
         
     completion_pct = min(100.0, (total_dist_traveled / track_length) * 100.0)
     avg_speed = float(np.mean(speeds)) if speeds else 0.0
+    max_speed_val = float(np.max(speeds)) if speeds else 0.0
+    min_speed_val = float(np.min(speeds[100:])) if len(speeds) > 100 else 0.0
     max_ct = float(np.max(ct_errors)) if ct_errors else 0.0
     avg_ct = float(np.mean(ct_errors)) if ct_errors else 0.0
     
@@ -218,6 +279,8 @@ def evaluate_improved_map(
         'track_length': round(track_length, 1),
         'completion_pct': round(completion_pct, 1),
         'avg_speed': round(avg_speed, 2),
+        'max_speed': round(max_speed_val, 2),
+        'min_corner_speed': round(min_speed_val, 2),
         'max_crosstrack_err': round(max_ct, 2),
         'avg_crosstrack_err': round(avg_ct, 2),
         'mean_steer_rate': round(mean_steer_rate, 3),
@@ -256,10 +319,17 @@ if __name__ == '__main__':
     for idx, tname in enumerate(tracks_to_test, 1):
         t0 = time.time()
         try:
-            res = evaluate_improved_map(tname, speed_scale=0.75)
+            res = evaluate_improved_map(
+                tname,
+                speed_scale=1.0,
+                max_straight_speed=7.5,
+                min_corner_speed=1.8,
+                lat_accel_max=2.5,
+                a_brake_max=2.0
+            )
             elapsed = time.time() - t0
             status_str = "PASSED" if res['completed'] else ("CRASHED" if res['crashed'] else "TIMEOUT")
-            print(f"[{idx:02d}/{len(tracks_to_test):02d}] {tname:15s} | {status_str:8s} | Progress: {res['completion_pct']:5.1f}% | Lap: {res['lap_time']}s | CTE: {res['avg_crosstrack_err']:.2f}m | Steer Rate: {res.get('mean_steer_rate', 0.0):.2f}/{res.get('max_steer_rate', 0.0):.2f} rad/s ({elapsed:.1f}s)")
+            print(f"[{idx:02d}/{len(tracks_to_test):02d}] {tname:15s} | {status_str:8s} | Progress: {res['completion_pct']:5.1f}% | Lap: {res['lap_time']}s | Vmax/Vavg: {res.get('max_speed', 0.0):.1f}/{res.get('avg_speed', 0.0):.1f} m/s | CTE: {res['avg_crosstrack_err']:.2f}m | Steer Rate: {res.get('mean_steer_rate', 0.0):.2f}/{res.get('max_steer_rate', 0.0):.2f} rad/s ({elapsed:.1f}s)")
             if res['completed']:
                 completions += 1
             else:
