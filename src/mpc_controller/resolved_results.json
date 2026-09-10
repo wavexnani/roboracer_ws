@@ -1,0 +1,420 @@
+[
+  {
+    "track_name": "Austin",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 223.8,
+    "distance_traveled": 407.0,
+    "track_length": 412.3,
+    "completion_pct": 98.7,
+    "avg_speed": 1.82,
+    "max_crosstrack_err": 0.51,
+    "avg_crosstrack_err": 0.08,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "BrandsHatch",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 74.61,
+    "distance_traveled": 348.1,
+    "track_length": 350.8,
+    "completion_pct": 99.2,
+    "avg_speed": 4.67,
+    "max_crosstrack_err": 0.2,
+    "avg_crosstrack_err": 0.06,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Budapest",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 97.7,
+    "distance_traveled": 387.7,
+    "track_length": 390.8,
+    "completion_pct": 99.2,
+    "avg_speed": 3.97,
+    "max_crosstrack_err": 0.2,
+    "avg_crosstrack_err": 0.06,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Catalunya",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 116.31,
+    "distance_traveled": 401.0,
+    "track_length": 404.1,
+    "completion_pct": 99.2,
+    "avg_speed": 3.45,
+    "max_crosstrack_err": 0.32,
+    "avg_crosstrack_err": 0.06,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Hockenheim",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 166.18,
+    "distance_traveled": 349.8,
+    "track_length": 353.6,
+    "completion_pct": 98.9,
+    "avg_speed": 2.11,
+    "max_crosstrack_err": 0.33,
+    "avg_crosstrack_err": 0.07,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "IMS",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 139.67,
+    "distance_traveled": 288.8,
+    "track_length": 291.8,
+    "completion_pct": 99.0,
+    "avg_speed": 2.07,
+    "max_crosstrack_err": 0.32,
+    "avg_crosstrack_err": 0.07,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Levine",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 32.3,
+    "distance_traveled": 59.5,
+    "track_length": 62.7,
+    "completion_pct": 95.0,
+    "avg_speed": 1.84,
+    "max_crosstrack_err": 0.45,
+    "avg_crosstrack_err": 0.09,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Melbourne",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 186.94,
+    "distance_traveled": 463.2,
+    "track_length": 467.8,
+    "completion_pct": 99.0,
+    "avg_speed": 2.48,
+    "max_crosstrack_err": 0.36,
+    "avg_crosstrack_err": 0.08,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Mexico City",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 141.43,
+    "distance_traveled": 345.5,
+    "track_length": 349.4,
+    "completion_pct": 98.9,
+    "avg_speed": 2.44,
+    "max_crosstrack_err": 0.37,
+    "avg_crosstrack_err": 0.07,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Monza",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 242.28,
+    "distance_traveled": 440.3,
+    "track_length": 444.5,
+    "completion_pct": 99.0,
+    "avg_speed": 1.82,
+    "max_crosstrack_err": 0.35,
+    "avg_crosstrack_err": 0.08,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "MoscowRaceway",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 143.67,
+    "distance_traveled": 307.4,
+    "track_length": 311.3,
+    "completion_pct": 98.7,
+    "avg_speed": 2.14,
+    "max_crosstrack_err": 0.39,
+    "avg_crosstrack_err": 0.07,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Nuerburgring",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 202.93,
+    "distance_traveled": 432.8,
+    "track_length": 437.1,
+    "completion_pct": 99.0,
+    "avg_speed": 2.13,
+    "max_crosstrack_err": 0.28,
+    "avg_crosstrack_err": 0.07,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Oschersleben",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 120.68,
+    "distance_traveled": 250.2,
+    "track_length": 253.5,
+    "completion_pct": 98.7,
+    "avg_speed": 2.07,
+    "max_crosstrack_err": 0.26,
+    "avg_crosstrack_err": 0.07,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Sakhir",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 213.1,
+    "distance_traveled": 432.4,
+    "track_length": 436.0,
+    "completion_pct": 99.2,
+    "avg_speed": 2.03,
+    "max_crosstrack_err": 0.3,
+    "avg_crosstrack_err": 0.07,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "SaoPaulo",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 126.61,
+    "distance_traveled": 332.7,
+    "track_length": 336.0,
+    "completion_pct": 99.0,
+    "avg_speed": 2.63,
+    "max_crosstrack_err": 0.29,
+    "avg_crosstrack_err": 0.06,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Sepang",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 201.68,
+    "distance_traveled": 471.0,
+    "track_length": 475.0,
+    "completion_pct": 99.2,
+    "avg_speed": 2.34,
+    "max_crosstrack_err": 0.34,
+    "avg_crosstrack_err": 0.07,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Silverstone",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 217.57,
+    "distance_traveled": 446.4,
+    "track_length": 450.6,
+    "completion_pct": 99.1,
+    "avg_speed": 2.05,
+    "max_crosstrack_err": 0.35,
+    "avg_crosstrack_err": 0.08,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Sochi",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 230.11,
+    "distance_traveled": 454.1,
+    "track_length": 458.3,
+    "completion_pct": 99.1,
+    "avg_speed": 1.97,
+    "max_crosstrack_err": 0.38,
+    "avg_crosstrack_err": 0.08,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Spa",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 248.98,
+    "distance_traveled": 542.4,
+    "track_length": 547.4,
+    "completion_pct": 99.1,
+    "avg_speed": 2.18,
+    "max_crosstrack_err": 0.4,
+    "avg_crosstrack_err": 0.08,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Spielberg",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 142.59,
+    "distance_traveled": 336.4,
+    "track_length": 339.5,
+    "completion_pct": 99.1,
+    "avg_speed": 2.36,
+    "max_crosstrack_err": 0.41,
+    "avg_crosstrack_err": 0.07,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "YasMarina",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 209.05,
+    "distance_traveled": 385.1,
+    "track_length": 389.5,
+    "completion_pct": 98.9,
+    "avg_speed": 1.84,
+    "max_crosstrack_err": 0.94,
+    "avg_crosstrack_err": 0.09,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "track_name": "Zandvoort",
+    "completed": true,
+    "crashed": false,
+    "crash_time": 0.0,
+    "lap_time": 189.02,
+    "distance_traveled": 375.9,
+    "track_length": 379.4,
+    "completion_pct": 99.1,
+    "avg_speed": 1.99,
+    "max_crosstrack_err": 0.33,
+    "avg_crosstrack_err": 0.07,
+    "crash_reason": "None",
+    "crash_location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  }
+]

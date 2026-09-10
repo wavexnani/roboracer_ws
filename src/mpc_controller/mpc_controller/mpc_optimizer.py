@@ -36,23 +36,23 @@ class MPCConfig:
     N: int = 10                    # Prediction horizon steps (0.8s horizon)
 
     # State tracking weights [x, y, psi, v]
-    w_x: float = 2.5
-    w_y: float = 2.5
-    w_psi: float = 1.8
-    w_v: float = 0.5
+    w_x: float = 10.0
+    w_y: float = 10.0
+    w_psi: float = 3.5
+    w_v: float = 0.8
     w_terminal_scale: float = 2.0  # Terminal cost multiplier
 
     # Control input weights [a, delta]
     w_a: float = 0.1
-    w_delta: float = 0.8
+    w_delta: float = 0.15
 
     # Control rate (smoothness / slew) weights [da, ddelta]
     w_da: float = 0.2
-    w_ddelta: float = 2.5
+    w_ddelta: float = 0.8
 
     # Input constraints
     max_steer: float = 0.4189      # Max steering angle [rad] (~24 deg)
-    max_steer_rate: float = 0.18   # Max steering change per dt [rad/step]
+    max_steer_rate: float = 3.2    # Max steering angular velocity [rad/s] (yields 0.256 rad/step at dt=0.08)
     min_accel: float = -7.0        # Max braking deceleration [m/s^2]
     max_accel: float = 4.0         # Max forward acceleration [m/s^2]
     min_speed: float = 0.0         # Min velocity [m/s]

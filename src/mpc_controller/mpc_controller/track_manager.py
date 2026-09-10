@@ -195,14 +195,111 @@ class TrackManager:
 
         cols = data.shape[1]
 
+        # Discover map files first so they can be used for safety validation
+        map_yaml = None
+        map_png = None
+        map_path_no_ext = None
+        if os.path.isdir(track_dir):
+            yamls = glob.glob(os.path.join(track_dir, '*map.yaml'))
+            pngs = glob.glob(os.path.join(track_dir, '*map.png'))
+            if yamls:
+                map_yaml = yamls[0]
+                map_path_no_ext = os.path.splitext(map_yaml)[0]
+            if pngs:
+                map_png = pngs[0]
+
         if cols >= 6:
             # Standard 7-column or 6-column raceline: [s, x, y, psi, kappa, vx, (ax)]
             s_arr = data[:, 0]
-            waypoints = data[:, [1, 2]]
-            # Ensure headings are strictly normalized to [-pi, pi]
+            waypoints = np.copy(data[:, [1, 2]])
             headings = (data[:, 3] + math.pi) % (2.0 * math.pi) - math.pi
-            kappa = data[:, 4]
-            target_speeds = data[:, 5]
+            kappa = np.copy(data[:, 4])
+            target_speeds = np.copy(data[:, 5])
+
+            # Safety clearance buffer: check map SDF and nudge waypoints away from obstacles
+            safe_dist = 0.40
+            if map_yaml and os.path.isfile(map_yaml) and map_png and os.path.isfile(map_png):
+                try:
+                    from PIL import Image
+                    from scipy.ndimage import distance_transform_edt, gaussian_filter1d
+
+                    with open(map_yaml, 'r') as f:
+                        mcfg = yaml.safe_load(f)
+                    img = Image.open(map_png).convert('L')
+                    map_arr = np.array(img)
+                    res = float(mcfg['resolution'])
+                    origin = mcfg['origin']
+
+                    free_mask = (map_arr > 200).astype(np.float32)
+                    obs_mask = (map_arr <= 200).astype(np.float32)
+                    sdf = (distance_transform_edt(free_mask) - distance_transform_edt(obs_mask)) * res
+
+                    # Centerline for safe directional guidance
+                    cl_cands = glob.glob(os.path.join(track_dir, '*centerline.csv'))
+                    cl_xy = None
+                    if cl_cands:
+                        sep_cl = ';' if ';' in open(cl_cands[0]).read(200) else ','
+                        cl_d = np.loadtxt(cl_cands[0], delimiter=sep_cl, comments='#')
+                        cl_xy = cl_d[:, :2]
+
+                    safe_dist = 0.42
+                    if cl_xy is not None:
+                        for iteration in range(3):
+                            for i in range(len(waypoints)):
+                                wx, wy = waypoints[i, 0], waypoints[i, 1]
+                                px = int((wx - origin[0]) / res)
+                                py = int((wy - origin[1]) / res)
+                                iy = map_arr.shape[0] - py - 1
+                                d = sdf[iy, px] if 0 <= px < map_arr.shape[1] and 0 <= iy < map_arr.shape[0] else -1.0
+
+                                if d < safe_dist:
+                                    closest_cl = int(np.argmin((cl_xy[:, 0] - wx)**2 + (cl_xy[:, 1] - wy)**2))
+                                    cx, cy = cl_xy[closest_cl]
+                                    v_to_cl = np.array([cx - wx, cy - wy])
+                                    dist_to_cl = math.hypot(v_to_cl[0], v_to_cl[1])
+                                    if dist_to_cl > 1e-3:
+                                        shift = safe_dist - d + 0.05
+                                        waypoints[i] += (v_to_cl / dist_to_cl) * shift
+
+                        waypoints[:, 0] = gaussian_filter1d(waypoints[:, 0], sigma=0.5, mode='wrap')
+                        waypoints[:, 1] = gaussian_filter1d(waypoints[:, 1], sigma=0.5, mode='wrap')
+
+                        for i in range(len(waypoints)):
+                            wx, wy = waypoints[i, 0], waypoints[i, 1]
+                            px = int((wx - origin[0]) / res)
+                            py = int((wy - origin[1]) / res)
+                            iy = map_arr.shape[0] - py - 1
+                            d = sdf[iy, px] if 0 <= px < map_arr.shape[1] and 0 <= iy < map_arr.shape[0] else -1.0
+                            if d < safe_dist:
+                                closest_cl = int(np.argmin((cl_xy[:, 0] - wx)**2 + (cl_xy[:, 1] - wy)**2))
+                                cx, cy = cl_xy[closest_cl]
+                                v_to_cl = np.array([cx - wx, cy - wy])
+                                dist_to_cl = math.hypot(v_to_cl[0], v_to_cl[1])
+                                if dist_to_cl > 1e-3:
+                                    shift = safe_dist - d + 0.02
+                                    waypoints[i] += (v_to_cl / dist_to_cl) * shift
+
+                        # Recompute arc length and headings after safety shift
+                        diffs = np.diff(waypoints, axis=0)
+                        dists = np.hypot(diffs[:, 0], diffs[:, 1])
+                        s_arr = np.insert(np.cumsum(dists), 0, 0.0)
+
+                        dx = np.gradient(waypoints[:, 0])
+                        dy = np.gradient(waypoints[:, 1])
+                        headings = np.arctan2(dy, dx)
+
+                        dpsi = (np.gradient(headings) + math.pi) % (2.0 * math.pi) - math.pi
+                        ds = np.gradient(s_arr)
+                        ds = np.where(ds < 1e-4, 1e-4, ds)
+                        kappa = dpsi / ds
+                except Exception as e:
+                    print(f"[TrackManager] Warning during map safety clearance check: {e}")
+
+            # Dynamic curvature-based speed profiling (max lateral acceleration 2.8 m/s^2)
+            k_abs = np.abs(kappa)
+            v_curv = np.where(k_abs > 0.12, np.sqrt(lat_accel_max / np.maximum(k_abs, 1e-4)), target_speeds)
+            target_speeds = np.minimum(target_speeds, v_curv)
+
         elif cols >= 2:
             # 4-column centerline [x, y, w_right, w_left] or 2-column [x, y]
             waypoints = data[:, [0, 1]]
@@ -235,19 +332,6 @@ class TrackManager:
 
         # Starting pose is first waypoint
         start_pose = (float(waypoints[0, 0]), float(waypoints[0, 1]), float(headings[0]))
-
-        # Discover map files
-        map_yaml = None
-        map_png = None
-        map_path_no_ext = None
-        if os.path.isdir(track_dir):
-            yamls = glob.glob(os.path.join(track_dir, '*map.yaml'))
-            pngs = glob.glob(os.path.join(track_dir, '*map.png'))
-            if yamls:
-                map_yaml = yamls[0]
-                map_path_no_ext = os.path.splitext(map_yaml)[0]
-            if pngs:
-                map_png = pngs[0]
 
         return TrackInfo(
             track_name=canonical_name,

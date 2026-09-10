@@ -20,7 +20,7 @@ from ament_index_python.packages import get_package_share_directory
 def launch_setup(context, *args, **kwargs):
     map_str = context.launch_configurations.get('map', 'Spielberg').strip()
     waypoint_type_str = context.launch_configurations.get('waypoint_type', 'raceline').strip()
-    speed_scale_str = context.launch_configurations.get('speed_scale', '0.60').strip()
+    speed_scale_str = context.launch_configurations.get('speed_scale', '0.75').strip()
     launch_sim_bool = context.launch_configurations.get('launch_sim', 'false').strip().lower() in ('true', '1')
     autofocus_str = context.launch_configurations.get('autofocus', 'true').strip()
 

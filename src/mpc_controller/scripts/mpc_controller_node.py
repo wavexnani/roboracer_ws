@@ -67,17 +67,17 @@ class MPCControllerNode(Node):
 
         # Vehicle & MPC Parameters
         self.declare_parameter('wheelbase', 0.33)
-        self.declare_parameter('speed_scale', 0.60)
+        self.declare_parameter('speed_scale', 0.75)
         self.declare_parameter('horizon', 10)
         self.declare_parameter('dt', 0.08)
 
         # MPC Cost Weights
-        self.declare_parameter('w_x', 2.5)
-        self.declare_parameter('w_y', 2.5)
-        self.declare_parameter('w_psi', 1.8)
-        self.declare_parameter('w_v', 0.5)
-        self.declare_parameter('w_delta', 0.8)
-        self.declare_parameter('w_ddelta', 2.5)
+        self.declare_parameter('w_x', 10.0)
+        self.declare_parameter('w_y', 10.0)
+        self.declare_parameter('w_psi', 3.5)
+        self.declare_parameter('w_v', 0.8)
+        self.declare_parameter('w_delta', 0.15)
+        self.declare_parameter('w_ddelta', 0.8)
         self.declare_parameter('w_a', 0.1)
 
         # Topic Names
