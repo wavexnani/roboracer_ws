@@ -21,6 +21,7 @@ def launch_setup(context, *args, **kwargs):
     map_str = context.launch_configurations.get('map', 'Spielberg').strip()
     waypoint_type_str = context.launch_configurations.get('waypoint_type', 'raceline').strip()
     speed_scale_str = context.launch_configurations.get('speed_scale', '0.75').strip()
+    steer_deadband_str = context.launch_configurations.get('steer_deadband', '0.0035').strip()
     launch_sim_bool = context.launch_configurations.get('launch_sim', 'false').strip().lower() in ('true', '1')
     autofocus_str = context.launch_configurations.get('autofocus', 'true').strip()
 
@@ -48,6 +49,7 @@ def launch_setup(context, *args, **kwargs):
             'map_name': canonical_map,
             'waypoint_type': waypoint_type_str,
             'speed_scale': float(speed_scale_str),
+            'steer_deadband_rad': float(steer_deadband_str),
             'sync_sim_map': True,
             'publish_initial_pose': True
         }]
@@ -101,11 +103,17 @@ def generate_launch_description():
         default_value='true',
         description='Whether RViz camera auto-focuses on the car (true) or displays full static map (false)'
     )
+    steer_deadband_arg = DeclareLaunchArgument(
+        'steer_deadband',
+        default_value='0.0035',
+        description='Steering deadband threshold [rad] to eliminate micro-vibrations (~0.20 deg)'
+    )
 
     return LaunchDescription([
         map_arg,
         waypoint_type_arg,
         speed_scale_arg,
+        steer_deadband_arg,
         launch_sim_arg,
         autofocus_arg,
         OpaqueFunction(function=launch_setup)

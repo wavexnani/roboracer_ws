@@ -80,6 +80,7 @@ class MPCControllerNode(Node):
         self.declare_parameter('w_ddelta', 1.5)
         self.declare_parameter('w_a', 0.1)
         self.declare_parameter('steer_ema_alpha', 1.0)
+        self.declare_parameter('steer_deadband_rad', 0.0035)  # ~0.20 deg deadband to suppress micro-vibrations
 
         # Topic Names
         self.declare_parameter('odom_topic', '/ego_racecar/odom')
@@ -137,7 +138,9 @@ class MPCControllerNode(Node):
         self._last_control = (0.0, 0.0)  # (accel, steer)
         self._last_pos = None  # To detect simulator resets
         self.steer_ema_alpha = float(self.get_parameter('steer_ema_alpha').value)
+        self.steer_deadband_rad = float(self.get_parameter('steer_deadband_rad').value)
         self._filtered_steer = 0.0
+        self._last_steer_cmd = 0.0
 
         # Simulator synchronization
         if self.sync_sim_map:
@@ -349,8 +352,17 @@ class MPCControllerNode(Node):
 
         target_v = float(np.clip(target_v, 0.5, self.scaled_target_speeds[closest_idx]))
 
-        # Smooth commanded steering via 1st-order EMA filter to eliminate servo chatter
-        self._filtered_steer = self.steer_ema_alpha * steer_cmd + (1.0 - self.steer_ema_alpha) * self._filtered_steer
+        # Micro-deadband filter: suppress sub-0.2 degree servo chatter and tiny vibrations
+        if abs(steer_cmd - self._last_steer_cmd) < self.steer_deadband_rad:
+            steer_cmd = self._last_steer_cmd
+        else:
+            self._last_steer_cmd = steer_cmd
+
+        # Smooth commanded steering via 1st-order EMA filter if alpha < 1.0
+        if self.steer_ema_alpha < 1.0:
+            self._filtered_steer = self.steer_ema_alpha * steer_cmd + (1.0 - self.steer_ema_alpha) * self._filtered_steer
+        else:
+            self._filtered_steer = steer_cmd
 
         # 4. Publish drive command
         drive_msg = AckermannDriveStamped()

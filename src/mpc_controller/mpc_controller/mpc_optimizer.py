@@ -355,10 +355,10 @@ class MPCOptimizer:
                 l=l_full,
                 u=u_full,
                 verbose=False,
-                eps_abs=1e-3,
-                eps_rel=1e-3,
-                max_iter=400,
-                polish=False
+                eps_abs=1e-4,
+                eps_rel=1e-4,
+                max_iter=500,
+                polish=True
             )
             if self._last_sol_x is not None and len(self._last_sol_x) == n_vars:
                 prob.warm_start(x=self._last_sol_x)
