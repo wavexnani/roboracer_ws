@@ -21,10 +21,10 @@ $$\dot{x} = v \cos\psi$$
 $$\dot{y} = v \sin\psi$$
 $$\dot{\psi} = \frac{v}{L} \tan\delta$$
 $$\dot{v} = a$$
-where $L = 0.33\text{ m}$ is the wheelbase.
+where L = 0.33 m is the wheelbase.
 
 ### 1.2 Linear Time-Varying (LTV) Discretization
-Around an operating reference point $(\bar{\mathbf{x}}_k, \bar{\mathbf{u}}_k)$ with sampling time $dt = 0.08\text{ s}$, the non-linear dynamics are linearized:
+Around an operating reference point $(\bar{\mathbf{x}}_k, \bar{\mathbf{u}}_k)$ with sampling time dt = 0.08 s, the non-linear dynamics are linearized:
 $$\mathbf{x}_{k+1} = A_k \mathbf{x}_k + B_k \mathbf{u}_k + \mathbf{c}_k$$
 
 Where the Jacobian matrices are:
@@ -44,26 +44,26 @@ dt & 0
 $$\mathbf{c}_k = \mathbf{f}(\bar{\mathbf{x}}_k, \bar{\mathbf{u}}_k) \cdot dt - A_k \bar{\mathbf{x}}_k - B_k \bar{\mathbf{u}}_k + \bar{\mathbf{x}}_k$$
 
 ### 1.3 Quadratic Cost Function
-Over prediction horizon $N = 10$ ($0.8\text{ s}$ preview horizon), the QP minimizes:
-$$J = \sum_{k=0}^{N-1} \left( \|\mathbf{x}_k - \mathbf{x}_k^{\text{ref}}\|_Q^2 + \|\mathbf{u}_k\|_R^2 + \|\mathbf{u}_k - \mathbf{u}_{k-1}\|_{R_\Delta}^2 \right) + \|\mathbf{x}_N - \mathbf{x}_N^{\text{ref}}\|_{Q_N}^2$$
+Over prediction horizon N = 10 (0.8 s preview horizon), the QP minimizes:
+$$J = \sum_{k=0}^{N-1} \left( \|\mathbf{x}_k - \mathbf{x}_k^{\mathrm{ref}}\|_Q^2 + \|\mathbf{u}_k\|_R^2 + \|\mathbf{u}_k - \mathbf{u}_{k-1}\|_{R_\Delta}^2 \right) + \|\mathbf{x}_N - \mathbf{x}_N^{\mathrm{ref}}\|_{Q_N}^2$$
 
-- **State Error Weight $Q = \text{diag}(q_x, q_y, q_\psi, q_v)$**:
-  - $q_x = 2.5, q_y = 2.5$: Tight cross-track tracking onto optimal racelines.
-  - $q_\psi = 1.8$: Alignment with upcoming track tangent heading.
-  - $q_v = 0.5$: Adherence to optimal speed profiles.
-- **Control Effort Weight $R = \text{diag}(r_a, r_\delta)$**:
-  - $r_\delta = 0.8$: Steering effort penalty to avoid aggressive tire slip.
-  - $r_a = 0.1$: Smooth acceleration demands.
-- **Control Rate Weight $R_\Delta = \text{diag}(r_{\Delta a}, r_{\Delta \delta})$**:
-  - $r_{\Delta \delta} = 2.5$: Slew-rate penalty preventing high-frequency steering chatter.
-- **Terminal Weight $Q_N = 2.0 \cdot Q$**:
+- **State Error Weight Q = diag(q_x, q_y, q_ψ, q_v)**:
+  - q_x = 2.5, q_y = 2.5: Tight cross-track tracking onto optimal racelines.
+  - q_ψ = 1.8: Alignment with upcoming track tangent heading.
+  - q_v = 0.5: Adherence to optimal speed profiles.
+- **Control Effort Weight R = diag(r_a, r_δ)**:
+  - r_δ = 0.8: Steering effort penalty to avoid aggressive tire slip.
+  - r_a = 0.1: Smooth acceleration demands.
+- **Control Rate Weight R_Δ = diag(r_Δa, r_Δδ)**:
+  - r_Δδ = 2.5: Slew-rate penalty preventing high-frequency steering chatter.
+- **Terminal Weight Q_N = 2.0 * Q**:
   - Stabilizes the open-loop horizon tail.
 
 ### 1.4 Physical Constraints
-- **Steering angle**: $|\delta_k| \le 0.4189\text{ rad}$ ($24^\circ$).
-- **Steering rate**: $|\delta_{k+1} - \delta_k| \le 0.18\text{ rad/step}$.
-- **Acceleration**: $-7.0\text{ m/s}^2 \le a_k \le 4.0\text{ m/s}^2$.
-- **Velocity**: $0.0 \le v_k \le 12.0\text{ m/s}$.
+- **Steering angle**: |δ_k| ≤ 0.4189 rad (24°).
+- **Steering rate**: |δ_{k+1} - δ_k| ≤ 0.18 rad/step.
+- **Acceleration**: -7.0 m/s² ≤ a_k ≤ 4.0 m/s².
+- **Velocity**: 0.0 ≤ v_k ≤ 12.0 m/s.
 
 ---
 
@@ -157,7 +157,7 @@ Out of 24 racetrack directories in the repository, 22 contain `raceline.csv` pro
 
 ### 5.1 Baseline Evaluation: Initial Performance & Crash Records
 
-In the initial configuration ($w_x = w_y = 2.5$, $w_{\Delta \delta} = 2.5$, $\dot{\delta}_{\max} = 0.18\text{ rad/step} \approx 2.25\text{ rad/s}$, unbuffered racelines):
+In the initial configuration (w_x = w_y = 2.5, w_Δδ = 2.5, steer_rate_max = 0.18 rad/step ≈ 2.25 rad/s, unbuffered racelines):
 - **Only 2 out of 22 maps completed successfully** (`BrandsHatch`, `Levine`).
 - **15 maps suffered severe crashes**.
 - **5 maps timed out** due to overly conservative speed scaling on long circuits.
@@ -180,7 +180,7 @@ In the initial configuration ($w_x = w_y = 2.5$, $w_{\Delta \delta} = 2.5$, $\do
 | **Nuerburgring** | **CRASHED** | 9.82s | 34.3m | 433.9m | 7.9% | 3.50 | 0.14 | Complex chicane spinout: $\Delta\psi=144.2^\circ, \delta=-8.4^\circ, \kappa=-0.44$ |
 | **Oschersleben** | **CRASHED** | 4.97s | 14.6m | 250.3m | 5.8% | 2.94 | 0.10 | Chicane loss of control: $\Delta\psi=162.7^\circ, \delta=-0.6^\circ$ |
 | **Sakhir** | TIMEOUT | - | 323.4m | 433.5m | 74.6% | 4.04 | 0.15 | Timed out before lap finish (no crash) |
-| **SaoPaulo** | **CRASHED** | 53.66s | 211.9m | 334.3m | 63.4% | 3.95 | 0.16 | Track Boundary Impact: scan$=0.14\text{m}, \kappa=-0.39$ |
+| **SaoPaulo** | **CRASHED** | 53.66s | 211.9m | 334.3m | 63.4% | 3.95 | 0.16 | Track Boundary Impact: scan = 0.14 m, κ = -0.39 |
 | **Sepang** | TIMEOUT | - | 324.4m | 473.3m | 68.5% | 4.06 | 0.16 | Timed out on long loop (no crash) |
 | **Silverstone** | **CRASHED** | 16.76s | 68.2m | 446.2m | 15.3% | 4.07 | 0.11 | Wall Collision at s=68.2m $(x=52.25, y=36.58)$ |
 | **Sochi** | **CRASHED** | 21.76s | 93.8m | 454.1m | 20.7% | 4.31 | 0.11 | High-speed sweep spinout: $\Delta\psi=157.6^\circ, \delta=-4.2^\circ, \kappa=-0.19$ |
@@ -197,20 +197,20 @@ Analysis of telemetry, state trajectories, OSQP solver flags, and LiDAR scan min
 
 #### 1. Major Issue: Zero Safety Margin Against Obstacles in Raw Racelines
 - **Affected Maps**: `Austin`, `Hockenheim`, `Silverstone`, `YasMarina`, `Zandvoort`, `SaoPaulo`.
-- **Cause**: The raw minimum-time offline raceline trajectories (`*_raceline.csv`) were computed using idealized point-mass models that hug walls and clip inside apex boundaries. In several tracks, the reference path itself passed within **$0.05\text{ m}$ to $0.15\text{ m}$ of the LiDAR obstacle boundary**. Because the physical vehicle has half-width $w = 0.155\text{ m}$, following the reference line with near-zero cross-track error still triggered a collision with the track boundary.
-- **Evidence**: In Austin ($s=41.2\text{ m}$) and Yas Marina ($s=18.4\text{ m}$), the car was tracking the reference line with only $0.05\text{ m}$ cross-track error, yet the LiDAR registered $<0.15\text{ m}$ wall distance and collided.
+- **Cause**: The raw minimum-time offline raceline trajectories (`*_raceline.csv`) were computed using idealized point-mass models that hug walls and clip inside apex boundaries. In several tracks, the reference path itself passed within **0.05 m to 0.15 m of the LiDAR obstacle boundary**. Because the physical vehicle has half-width w = 0.155 m, following the reference line with near-zero cross-track error still triggered a collision with the track boundary.
+- **Evidence**: In Austin (s = 41.2 m) and Yas Marina (s = 18.4 m), the car was tracking the reference line with only 0.05 m cross-track error, yet the LiDAR registered < 0.15 m wall distance and collided.
 
 #### 2. Major Issue: Steering Slew Rate Choking & Cost Imbalance
 - **Affected Maps**: `IMS`, `Monza`, `Oschersleben`, `Spielberg`, `Spa`, `Mexico City`.
 - **Cause**: The baseline controller had:
-  1. An artificially tight steering slew limit ($\Delta \delta \le 0.18\text{ rad/step} \approx 2.25\text{ rad/s}$).
-  2. An excessively high rate penalty ($w_{\Delta \delta} = 2.5$) and control effort penalty ($w_\delta = 0.8$).
-  3. Weak position tracking weights ($w_x = w_y = 2.5$, $w_\psi = 1.8$).
-- When entering tight corners or chicanes where path curvature abruptly shifted ($\kappa > 0.35\text{ rad/m}$), the QP optimizer penalized steering changes more than positional deviations. Consequently, the steering response lagged far behind the required curvature tangent, resulting in severe yaw misalignments ($\Delta\psi > 80^\circ$) and off-track spinouts.
+  1. An artificially tight steering slew limit (Δδ ≤ 0.18 rad/step ≈ 2.25 rad/s).
+  2. An excessively high rate penalty (w_Δδ = 2.5) and control effort penalty (w_δ = 0.8).
+  3. Weak position tracking weights (w_x = w_y = 2.5, w_ψ = 1.8).
+- When entering tight corners or chicanes where path curvature abruptly shifted (κ > 0.35 rad/m), the QP optimizer penalized steering changes more than positional deviations. Consequently, the steering response lagged far behind the required curvature tangent, resulting in severe yaw misalignments (Δψ > 80°) and off-track spinouts.
 
 #### 3. Major Issue: Excessive Target Velocity on High-Curvature Chicanes
 - **Affected Maps**: `MoscowRaceway`, `Nuerburgring`, `Sochi`, `Mexico City`.
-- **Cause**: The raw speed profiles in several raceline files demanded velocities of $6.0 - 8.5\text{ m/s}$ through sharp chicanes ($\kappa \approx 0.45\text{ rad/m}$). This implied lateral accelerations $a_{\text{lat}} = v^2 \kappa > 16\text{ m/s}^2$, vastly exceeding the physical tire-road friction limit ($\mu \approx 0.8 - 1.0$, corresponding to $a_{\text{lat,max}} \approx 3.0\text{ m/s}^2$). The vehicle slid laterally, spun out, and lost track tracking.
+- **Cause**: The raw speed profiles in several raceline files demanded velocities of 6.0 - 8.5 m/s through sharp chicanes (κ ≈ 0.45 rad/m). This implied lateral accelerations a_lat = v² * κ > 16 m/s², vastly exceeding the physical tire-road friction limit (μ ≈ 0.8 - 1.0, corresponding to a_lat,max ≈ 3.0 m/s²). The vehicle slid laterally, spun out, and lost track tracking.
 
 #### 4. Minor Issue: Initial Pose Heading Discontinuity at Grid Start
 - **Affected Maps**: `IMS`, `Monza`.
@@ -235,11 +235,11 @@ flowchart TD
 1. **Continuous Track Obstacle Clearance Buffer (`track_manager.py`)**:
    - Ingests the track's binary occupancy map (`*map.png`) and resolution/origin metadata (`*map.yaml`).
    - Computes the exact Euclidean Signed Distance Field (SDF) of the racetrack:
-     $$\text{SDF}(x, y) = \text{EDT}(\text{free}) - \text{EDT}(\text{obstacle})$$
+     $$\mathrm{SDF}(x, y) = \mathrm{EDT}(\mathrm{free}) - \mathrm{EDT}(\mathrm{obstacle})$$
    - Computes a continuous, penetration-proportional shift vector field toward the centerline:
-     $$\mathbf{v}_{\text{shift}}(s) = \frac{\mathbf{c}(s) - \mathbf{w}(s)}{\|\mathbf{c}(s) - \mathbf{w}(s)\|} \cdot \max(0, d_{\text{safe}} - d(s))$$
+     $$\mathbf{v}_{\mathrm{shift}}(s) = \frac{\mathbf{c}(s) - \mathbf{w}(s)}{\|\mathbf{c}(s) - \mathbf{w}(s)\|} \cdot \max(0, d_{\mathrm{safe}} - d(s))$$
    - Applies spatial 1D Gaussian filtering ($\sigma = 2.0$) across the displacement vector field *before* adding to waypoints, preventing sawtooth kinks.
-   - Enforces a strict obstacle clearance floor ($d_{\text{safe}} \ge 0.42\text{ m}$) ensuring guaranteed safety margin from all barriers.
+   - Enforces a strict obstacle clearance floor (d_safe ≥ 0.42 m) ensuring guaranteed safety margin from all barriers.
 
 2. **Analytic 2D Parametric Curvature Formulation (`track_manager.py`)**:
    - Replaces noisy numerical gradient differentiation on wrapped headings with periodic circular-padded 2D parametric curvature:
@@ -247,17 +247,17 @@ flowchart TD
    - Completely eliminates heading wrap-around jump artifacts and curvature noise ($|\Delta \kappa|$ dropped by $1,000\times$).
 
 3. **Smooth Forward-Backward Dynamic Speed Profiling (`track_manager.py`)**:
-   - Caps corner speeds based on tire physical friction limits ($a_{\text{lat,max}} \le 2.5\text{ m/s}^2$):
-     $$v_{\text{curv}}(s) = \sqrt{\frac{a_{\text{lat,max}}}{\max(|\kappa(s)|, 10^{-4})}}$$
-   - Applies forward-backward kinematic speed profiling ($a_{\text{brake}} \le 2.0\text{ m/s}^2, a_{\text{accel}} \le 2.5\text{ m/s}^2$) so the car initiates smooth, progressive braking before tight curves, eliminating longitudinal velocity surging.
+   - Caps corner speeds based on tire physical friction limits (a_lat,max ≤ 2.5 m/s²):
+     $$v_{\mathrm{curv}}(s) = \sqrt{\frac{a_{\mathrm{lat,max}}}{\max(|\kappa(s)|, 10^{-4})}}$$
+   - Applies forward-backward kinematic speed profiling (a_brake ≤ 2.0 m/s², a_accel ≤ 2.5 m/s²) so the car initiates smooth, progressive braking before tight curves, eliminating longitudinal velocity surging.
 
 4. **Balanced High-Bandwidth MPC Optimization Formulation (`mpc_optimizer.py`)**:
-   - Optimized state tracking weights: $w_x = 8.0, w_y = 8.0, w_\psi = 3.0, w_v = 0.8$.
-   - Increased steering slew rate damping: $w_{\Delta \delta} = 1.5$ (from $0.8$) and $w_\delta = 0.25$.
-   - Physical steering servo rate bound: $\dot{\delta}_{\max} = 2.8\text{ rad/s}$ ($0.224\text{ rad/step}$ at $dt=0.08\text{s}$).
+   - Optimized state tracking weights: w_x = 8.0, w_y = 8.0, w_ψ = 3.0, w_v = 0.8.
+   - Increased steering slew rate damping: w_Δδ = 1.5 (from 0.8) and w_δ = 0.25.
+   - Physical steering servo rate bound: steer_rate_max = 2.8 rad/s (0.224 rad/step at dt = 0.08 s).
 
 5. **Directional Spatial Waypoint Search (`mpc_controller_node.py`)**:
-   - Replaces heading-penalized waypoint search with pure spatial Euclidean distance masked by forward road tangent direction ($\cos\Delta\psi > 0$), eliminating waypoint matching distortion in sharp hairpins.
+   - Replaces heading-penalized waypoint search with pure spatial Euclidean distance masked by forward road tangent direction (cos(Δψ) > 0), eliminating waypoint matching distortion in sharp hairpins.
 
 ---
 
@@ -303,12 +303,12 @@ The complete 22-map raceline benchmark was evaluated headlessly under identical 
 | **Crash Count** | 15 Crashes (68.2%) | **0 Crashes (0.0%)** | **-100% (Zero Crashes)** |
 | **Timeouts** | 5 Timeouts (22.7%) | **0 Timeouts (0.0%)** | **-100%** |
 | **Mean Cross-Track Error** | 0.054 m (pre-crash only) | **0.060 m (entire lap)** | Sub-decimeter precision |
-| **Steering Smoothness (Mean Rate)** | $> 2.5\text{ rad/s}$ (violent flutter) | **$0.35\text{ rad/s}$** | **Butter-smooth tracking** |
-| **Average Lap Speed** | $\sim 2.1\text{ m/s}$ | **$3.7\text{ m/s}$** | **+76% Faster Pace** |
-| **Obstacle Safety Margin** | $<0.05\text{ m}$ (direct wall hits) | $\ge 0.42\text{ m}$ guaranteed | Full collision prevention |
+| **Steering Smoothness (Mean Rate)** | > 2.5 rad/s (violent flutter) | **0.35 rad/s** | **Butter-smooth tracking** |
+| **Average Lap Speed** | ~2.1 m/s | **3.7 m/s** | **+76% Faster Pace** |
+| **Obstacle Safety Margin** | < 0.05 m (direct wall hits) | ≥ 0.42 m guaranteed | Full collision prevention |
 
 > [!NOTE]
-> All raw benchmark JSON datasets are retained in [`baseline_results.json`](file:///home/yeswanth/roboracer_ws/src/mpc_controller/baseline_results.json), [`resolved_results.json`](file:///home/yeswanth/roboracer_ws/src/mpc_controller/resolved_results.json), and [`smooth_results.json`](file:///home/yeswanth/roboracer_ws/src/mpc_controller/smooth_results.json) for regression testing and comparative audits.
+> All raw benchmark JSON datasets are retained in [`baseline_results.json`](baseline_results.json), [`resolved_results.json`](resolved_results.json), and [`smooth_results.json`](smooth_results.json) for regression testing and comparative audits.
 
 ---
 
@@ -317,17 +317,17 @@ The complete 22-map raceline benchmark was evaluated headlessly under identical 
 ### 6.1 Overview & Mathematical Architecture
 
 The controller features an **Adaptive Velocity Controller** that dynamically adjusts speed to:
-1. **Unleash Top Speed on Straights**: Accelerates up to `max_straight_speed` ($7.5\text{ m/s}$) when the path ahead is clear and uncurved.
-2. **Pre-Braking Curvature Lookahead**: Anticipates upcoming corner entries ~4 meters ahead ($\kappa_{\text{lookahead}}$) and decelerates *ahead of time* on the straight using a multi-pass backward pass:
-   $$v(s_i) \le \sqrt{v(s_{i+1})^2 + 2 a_{\text{brake}} \Delta s_i}$$
+1. **Unleash Top Speed on Straights**: Accelerates up to `max_straight_speed` (7.5 m/s) when the path ahead is clear and uncurved.
+2. **Pre-Braking Curvature Lookahead**: Anticipates upcoming corner entries ~4 meters ahead (κ_lookahead) and decelerates *ahead of time* on the straight using a multi-pass backward pass:
+   $$v(s_i) \le \sqrt{v(s_{i+1})^2 + 2 a_{\mathrm{brake}} \Delta s_i}$$
 3. **Cartesian Forward Driving Corridor Obstacle Protection**: Evaluates real-time LiDAR scans (`/scan`) projected into Cartesian vehicle coordinates along the steered travel direction:
-   $$x_{\text{body}} = r \cos(\theta - \delta), \quad y_{\text{body}} = r \sin(\theta - \delta)$$
-   Filtering points inside the drivable corridor ($0.35\text{m} < x_{\text{body}} < 10.0\text{m}$, $|y_{\text{body}}| \le 0.28\text{m}$), the obstacle stopping ceiling is computed as:
-   $$v_{\text{obs}} = \sqrt{2 a_{\text{decel}} \max(0, d_{\text{obs}} - d_{\text{margin}})}$$
+   $$x_{\mathrm{body}} = r \cos(\theta - \delta), \quad y_{\mathrm{body}} = r \sin(\theta - \delta)$$
+   Filtering points inside the drivable corridor (0.35 m < x_body < 10.0 m, |y_body| ≤ 0.28 m), the obstacle stopping ceiling is computed as:
+   $$v_{\mathrm{obs}} = \sqrt{2 a_{\mathrm{decel}} \max(0, d_{\mathrm{obs}} - d_{\mathrm{margin}})}$$
 4. **Smooth Longitudinal Slew-Rate Limiting**: Enforces strict acceleration and braking bounds:
-   $$v_{\text{cmd}} \in [v_{\text{last}} - a_{\text{decel}} \Delta t, \; v_{\text{last}} + a_{\text{accel}} \Delta t]$$
+   $$v_{\mathrm{cmd}} \in [v_{\mathrm{last}} - a_{\mathrm{decel}} \Delta t, \; v_{\mathrm{last}} + a_{\mathrm{accel}} \Delta t]$$
    eliminating jerky speed steps while guaranteeing zero tire slip.
-5. **Steering Micro-Deadband Filter**: Suppresses sub-0.20° servo chatter ($|\Delta\delta| < 0.0035\text{ rad}$) to maintain zero micro-vibrations.
+5. **Steering Micro-Deadband Filter**: Suppresses sub-0.20° servo chatter (|Δδ| < 0.0035 rad) to maintain zero micro-vibrations.
 
 ### 6.2 Adaptive Benchmark Results Across Circuits
 

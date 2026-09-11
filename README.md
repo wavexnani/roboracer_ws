@@ -4,15 +4,15 @@ Autonomous racing software stack for F1TENTH / RoboRacer in ROS 2.
 
 ## Included Packages
 - **`mpc_controller`**: State-of-the-art Linear Time-Varying Model Predictive Controller (**LTV-MPC**) using OSQP:
-  - Quadratic Program optimization over kinematic bicycle model ($N=10$, $dt=0.08\text{s}$)
-  - Automated 2D Signed Distance Field (SDF) obstacle clearance buffer ($\ge 0.42\text{m}$)
-  - Curvature-adaptive dynamic speed profiling ($a_{\text{lat}} \le 2.8\text{ m/s}^2$)
+  - Quadratic Program optimization over kinematic bicycle model (N = 10, dt = 0.08 s)
+  - Automated 2D Signed Distance Field (SDF) obstacle clearance buffer (≥ 0.42 m)
+  - Curvature-adaptive dynamic speed profiling (a_lat ≤ 2.8 m/s²)
   - Dynamic map discovery across all 24 `f1tenth_racetracks` circuits
   - Real-time RViz predicted horizon visualizer
-  - **100% Completion Rate across all 22 Raceline Maps (0 Crashes)** — see [`src/mpc_controller/README.md`](file:///home/yeswanth/roboracer_ws/src/mpc_controller/README.md) for full benchmark logs
+  - **100% Completion Rate across all 22 Raceline Maps (0 Crashes)** — see [`src/mpc_controller/README.md`](src/mpc_controller/README.md) for full benchmark logs
 - **`stanley_controller`**: High-performance Stanley path-tracking controller featuring:
   - Orthogonal cross-track error computation
-  - Curvature feedforward steering ($\delta_{\text{ff}} = k_{\text{ff}} \arctan(L \kappa)$)
+  - Curvature feedforward steering (δ_ff = k_ff * arctan(L * κ))
   - Speed-adaptive preview lookahead distance
   - Curvature-based braking horizon speed adaptation
   - RViz target and raceline marker visualization

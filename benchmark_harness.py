@@ -112,7 +112,9 @@ class OriginalStanleyController:
         self.software_k = 0.5
         self.max_steer = 0.4189  # ~24 deg
 
-    def compute_control(self, x: float, y: float, yaw: float, v: float, dt: float) -> Tuple[float, float, float, float]:
+    def compute_control(
+        self, x: float, y: float, yaw: float, v: float, dt: float, scans: Optional[List[float]] = None
+    ) -> Tuple[float, float, float, float]:
         # Classic reference point at front axle
         ref_x = x + self.wheelbase * math.cos(yaw)
         ref_y = y + self.wheelbase * math.sin(yaw)
@@ -178,7 +180,9 @@ class ModifiedStanleyController:
             return float('inf')
         return math.sqrt(self.lat_accel_max / k_max)
 
-    def compute_control(self, x: float, y: float, yaw: float, v: float, dt: float) -> Tuple[float, float, float, float]:
+    def compute_control(
+        self, x: float, y: float, yaw: float, v: float, dt: float, scans: Optional[List[float]] = None
+    ) -> Tuple[float, float, float, float]:
         eff_offset = self.wheelbase + self.lookahead_dist + self.lookahead_gain * v
         ref_x = x + eff_offset * math.cos(yaw)
         ref_y = y + eff_offset * math.sin(yaw)
@@ -253,7 +257,9 @@ class BaselineMPCController:
         self.optimizer = MPCOptimizer(self.cfg)
         self.last_control = (0.0, 0.0)
 
-    def compute_control(self, x: float, y: float, yaw: float, v: float, dt: float) -> Tuple[float, float, float, float]:
+    def compute_control(
+        self, x: float, y: float, yaw: float, v: float, dt: float, scans: Optional[List[float]] = None
+    ) -> Tuple[float, float, float, float]:
         idx, min_dist = find_closest_waypoint(self.waypoints, self.headings, x, y, yaw, self.last_idx, self.num_pts)
         self.last_idx = idx
 
@@ -478,7 +484,8 @@ def run_simulation(
         raise ValueError(f"Unknown controller type: {controller_type}")
 
     env = gym.make('f110_gym:f110-v0', map=map_path_no_ext, map_ext='.png', num_agents=1)
-    obs, _, done, _ = env.reset(np.array([[start_pose[0], start_pose[1], start_pose[2]]]))
+    reset_ret = env.reset(np.array([[start_pose[0], start_pose[1], start_pose[2]]]))
+    obs = reset_ret[0] if isinstance(reset_ret, tuple) else reset_ret
 
     control_interval = int(round((1.0 / mpc_rate_hz) / sim_dt))
     control_dt = 1.0 / mpc_rate_hz
@@ -546,7 +553,7 @@ def run_simulation(
 
         # Compute Control at control rate
         if step_count % control_interval == 0:
-            if controller_type == 'Latest_MPC':
+            if isinstance(ctrl, LatestMPCController):
                 steer_cmd, speed_cmd, e_ct, e_psi = ctrl.compute_control(
                     cur_x, cur_y, cur_yaw, cur_v, control_dt, scans=obs['scans'][0]
                 )
@@ -584,8 +591,9 @@ def run_simulation(
                 telemetry['x'].append(round(cur_x, 3))
                 telemetry['y'].append(round(cur_y, 3))
 
-        # Simulator physics step
-        obs, reward, done, info = env.step(np.array([[current_steer_cmd, current_speed_cmd]]))
+        # Simulator physics step (handles both 4-tuple and 5-tuple gym step signatures)
+        step_ret = env.step(np.array([[current_steer_cmd, current_speed_cmd]]))
+        obs = step_ret[0]
         sim_time += sim_dt
         step_count += 1
 
