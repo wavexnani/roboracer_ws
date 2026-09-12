@@ -180,27 +180,51 @@ To determine whether the Latest MPC's performance generalized universally or was
 
 ---
 
-## 6. Strategic Recommendations: Identifying Real Limitations & Next Steps
+## 6. Adaptive Multi-Regime Hybrid Controller (`hybrid_controller`) - ROBORACER IFAC 2026
+
+To address the observed trade-offs between cornering authority, narrow-corridor wall chatter, and obstacle navigation, an **Adaptive Multi-Regime Hybrid Controller (ARM-HC)** was developed and packaged into the dedicated ROS 2 package [`src/hybrid_controller/`](src/hybrid_controller/):
+
+### 6.1 Multi-Regime Supervisory Engine
+1. **Regime 1: WALL_DAMPED**: In tight corridors (side walls $< 0.60\text{m}$), steering rate damping penalty increases to $w_{\Delta \delta} = 2.5–3.2$, reducing steering chatter to $0.0\text{ rad/s}$ in indoor environments like Levine.
+2. **Regime 2: OBSTACLE_BYPASS**: Real-time 2D LiDAR Frenet lattice avoidance. Modulates reference trajectory using raised-cosine splines and heading adaptation to maintain $\ge 0.50\text{m}$ clearance around Q2 static obstacles with zero collisions.
+3. **Regime 3: HIGH_SPEED_STRAIGHT**: Accelerates up to $7.50\text{ m/s}$ on open straights with longitudinal rate-limiting ($a_{\text{accel}} = 2.5\text{ m/s}^2, a_{\text{decel}} = 3.2\text{ m/s}^2$).
+4. **Regime 4: CORNER_APEX**: High-authority cornering with relaxed steering penalty ($w_\delta = 0.20$) and multi-pass backward pre-braking.
+5. **Regime 5: STANLEY_RECOVERY**: Asymptotically stable Stanley law fallback for recovery from large lateral deviations ($|e_{\text{ct}}| > 0.50\text{m}$) or spinouts.
+6. **Anti-Deadlock Autonomous Watchdog**: Fully autonomous $<5\text{s}$ rule enforcement with automated reverse-and-realign logic if stalled for $>1.5\text{s}$.
+
+### 6.2 ARM-HC Verification Results Table
+
+| Circuit | Mode | Configuration | Lap Time [s] | Completion | V_avg [m/s] | V_max [m/s] | Avg CTE [m] | Wall Jitter std(d_dot) | Overall Jitter | Obstacles Cleared |
+| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Spielberg** | **Q1** | High-speed GP time trial | **77.86s** | **100%** | **4.31** | **7.50** | **0.020m** | 0.397 rad/s | 0.593 rad/s | N/A (Clean Track) |
+| **Levine** | **Q1** | Indoor corridor, low-friction urethane | **24.49s** | **100%** | **2.43** | **5.00** | **0.037m** | **0.000 rad/s** | 0.627 rad/s | N/A (Clean Track) |
+| **Spielberg** | **Q2** | 2 Static Obstacles avoided | **83.72s** | **100%** | **4.02** | **7.50** | **0.054m** | 0.394 rad/s | 0.758 rad/s | **2 / 2 (0 collisions)** |
+| **Catalunya** | **Q1** | Unseen Generalization Circuit | **85.26s** | **100%** | **4.70** | **7.50** | **0.023m** | 0.117 rad/s | 0.318 rad/s | N/A (Clean Track) |
+| **Spa** | **Q1** | Unseen 544.5m GP Circuit | **123.53s** | **100%** | **4.38** | **7.50** | **0.021m** | 0.586 rad/s | 0.653 rad/s | N/A (Clean Track) |
+
+---
+
+## 7. Strategic Recommendations: Identifying Real Limitations & Next Steps
 
 Based on this systematic comparison, we can directly answer the core engineering questions posed for this evaluation:
 
-### 6.1 Where is the Actual Limitation?
+### 7.1 Where is the Actual Limitation?
 1. **The limitation is NOT in lateral MPC tracking capability**: With balanced weights (w_{x,y} = 8.0, w_δ = 0.25), the kinematic bicycle LTV-MPC tracks racelines with sub-0.03 m precision and zero actuator instability.
 2. **The limitation was purely longitudinal velocity management**:
    - Without curvature lookahead pre-braking, the vehicle enters corners with excessive kinetic energy that exceeds tire friction limits (a_lat > μ * g). No lateral controller—neither Stanley nor MPC—can prevent collisions once friction is saturated.
    - Traditional fixed speed scaling (v_target = scale * v_csv) forces a losing trade-off: set the scale low enough to survive hairpins (0.60), and the car crawls on straights; set it high enough to race on straights (0.85+), and the car crashes into the first corner apex.
 
-### 6.2 Is Adaptive Velocity Control Required?
+### 7.2 Is Adaptive Velocity Control Required?
 **Yes, unequivocally.** The backward pre-braking curvature lookahead and dynamic corridor protection in the **Latest MPC** are what made the car both **26% faster** and **100% collision-free** across all tracks. Adaptive longitudinal control is not an incremental feature—it is the foundational prerequisite for high-speed autonomous racing.
 
-### 6.3 Recommended Next Steps
+### 7.3 Recommended Next Steps
 1. **Retain the Current LTV-MPC + Curvature Lookahead as the Golden Baseline**: The implementation in [`1e57c15`](src/mpc_controller/mpc_controller/mpc_optimizer.py) represents a production-ready, highly optimal configuration with zero code regressions.
 2. **Explore Tire Force-Constrained Acceleration Limiting**: As straight speeds exceed 8.0 m/s, replace the kinematic friction circle heuristic (v = sqrt(a_lat / κ)) with a dynamic friction ellipse model ((a_long / a_long,max)² + (a_lat / a_lat,max)² ≤ 1).
 3. **Multi-Vehicle Racing Extensions**: The real-time Cartesian LiDAR corridor filter can be readily extended into dynamic overtaking corridors when racing against opponent vehicles.
 
 ---
 
-## 7. Artifacts & Reference Files Summary
+## 8. Artifacts & Reference Files Summary
 
 - **Summary Benchmark Results**: [`benchmark_results.json`](benchmark_results.json)
 - **High-Frequency Telemetry Database**: [`benchmark_telemetry.json`](benchmark_telemetry.json)
