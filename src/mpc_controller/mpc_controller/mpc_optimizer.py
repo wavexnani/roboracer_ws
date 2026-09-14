@@ -36,23 +36,23 @@ class MPCConfig:
     N: int = 10                    # Prediction horizon steps (0.8s horizon)
 
     # State tracking weights [x, y, psi, v]
-    w_x: float = 8.0
-    w_y: float = 8.0
-    w_psi: float = 3.0
+    w_x: float = 6.5
+    w_y: float = 6.5
+    w_psi: float = 2.8
     w_v: float = 0.8
     w_terminal_scale: float = 2.0  # Terminal cost multiplier
 
     # Control input weights [a, delta]
     w_a: float = 0.1
-    w_delta: float = 0.25
+    w_delta: float = 0.35
 
     # Control rate (smoothness / slew) weights [da, ddelta]
     w_da: float = 0.2
-    w_ddelta: float = 1.5
+    w_ddelta: float = 2.2
 
     # Input constraints
     max_steer: float = 0.4189      # Max steering angle [rad] (~24 deg)
-    max_steer_rate: float = 2.8    # Max steering angular velocity [rad/s] (yields 0.224 rad/step at dt=0.08)
+    max_steer_rate: float = 2.0    # Max steering angular velocity [rad/s] (yields 0.160 rad/step at dt=0.08)
     min_accel: float = -7.0        # Max braking deceleration [m/s^2]
     max_accel: float = 4.0         # Max forward acceleration [m/s^2]
     min_speed: float = 0.0         # Min velocity [m/s]
@@ -93,6 +93,29 @@ class MPCOptimizer:
         # OSQP persistent solver instance for warm starting
         self._osqp_solver = None
         self._last_sol_x = None
+
+    def update_weights(
+        self,
+        w_x: Optional[float] = None,
+        w_y: Optional[float] = None,
+        w_psi: Optional[float] = None,
+        w_v: Optional[float] = None,
+        w_delta: Optional[float] = None,
+        w_ddelta: Optional[float] = None
+    ):
+        """Dynamically adjusts cost weights for gain-scheduled regimes."""
+        if w_x is not None:
+            self.cfg.w_x = float(w_x)
+        if w_y is not None:
+            self.cfg.w_y = float(w_y)
+        if w_psi is not None:
+            self.cfg.w_psi = float(w_psi)
+        if w_v is not None:
+            self.cfg.w_v = float(w_v)
+        if w_delta is not None:
+            self.cfg.w_delta = float(w_delta)
+        if w_ddelta is not None:
+            self.cfg.w_ddelta = float(w_ddelta)
 
     def linearize_kinematics(
         self,

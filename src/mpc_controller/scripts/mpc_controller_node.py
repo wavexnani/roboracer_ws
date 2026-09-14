@@ -72,16 +72,16 @@ class MPCControllerNode(Node):
         self.declare_parameter('horizon', 10)
         self.declare_parameter('dt', 0.08)
 
-        # MPC Cost Weights
-        self.declare_parameter('w_x', 8.0)
-        self.declare_parameter('w_y', 8.0)
-        self.declare_parameter('w_psi', 3.0)
+        # MPC Cost Weights (Regime-Adaptive Configuration)
+        self.declare_parameter('w_x', 4.0)
+        self.declare_parameter('w_y', 4.0)
+        self.declare_parameter('w_psi', 2.0)
         self.declare_parameter('w_v', 0.8)
-        self.declare_parameter('w_delta', 0.25)
-        self.declare_parameter('w_ddelta', 1.5)
+        self.declare_parameter('w_delta', 0.60)
+        self.declare_parameter('w_ddelta', 3.0)
         self.declare_parameter('w_a', 0.1)
-        self.declare_parameter('steer_ema_alpha', 1.0)
-        self.declare_parameter('steer_deadband_rad', 0.0035)  # ~0.20 deg deadband to suppress micro-vibrations
+        self.declare_parameter('steer_ema_alpha', 1.0)       # 1.0 = disabled (eliminates filter phase lag)
+        self.declare_parameter('steer_deadband_rad', 0.0035)  # 0.0035 rad micro-deadband to suppress straight-line flutter
 
         # Adaptive Velocity & Safety Parameters
         self.declare_parameter('enable_adaptive_speed', True)
@@ -162,12 +162,22 @@ class MPCControllerNode(Node):
         self._last_idx = 0
         self._last_control = (0.0, 0.0)  # (accel, steer)
         self._last_pos = None  # To detect simulator resets
+        self._last_odom_time = None  # For true delta-t slew calculations
         self.steer_ema_alpha = float(self.get_parameter('steer_ema_alpha').value)
         self.steer_deadband_rad = float(self.get_parameter('steer_deadband_rad').value)
         self._filtered_steer = 0.0
         self._last_steer_cmd = 0.0
         self._last_speed_cmd = 0.0
         self._last_scan: Optional[LaserScan] = None
+        self._current_regime = 'STRAIGHT'
+        self.optimizer.update_weights(
+            w_x=4.0,
+            w_y=4.0,
+            w_psi=2.0,
+            w_v=0.8,
+            w_delta=0.60,
+            w_ddelta=3.0
+        )
 
         # Simulator synchronization
         if self.sync_sim_map:
@@ -270,24 +280,29 @@ class MPCControllerNode(Node):
                 pos_jump = True
         self._last_pos = (cur_x, cur_y)
 
-        # Local window search around last index with heading check
-        window_backward = 20
-        window_forward = 100
-        search_indices = (np.arange(-window_backward, window_forward) + self._last_idx) % self.num_waypoints
+        # Monotonic forward search around last index with forward bias
+        window_backward = 15
+        window_forward = 80
+        search_offsets = np.arange(-window_backward, window_forward)
+        search_indices = (search_offsets + self._last_idx) % self.num_waypoints
         cand_pts = self.waypoints[search_indices]
 
         dx = cand_pts[:, 0] - cur_x
         dy = cand_pts[:, 1] - cur_y
         dist_sq = dx * dx + dy * dy
 
-        # Heading directional mask: only search waypoints in the forward direction
+        # Heading directional mask: only search waypoints facing forward (within ~80 deg)
         dpsi = (self.path_headings[search_indices] - cur_yaw + math.pi) % (2.0 * math.pi) - math.pi
-        forward_mask = np.cos(dpsi) > 0.0
+        forward_mask = np.cos(dpsi) > 0.17
+
+        # Slight backward penalty to favor forward movement along raceline
+        index_bias = np.where(search_offsets < 0, 0.4 * (-search_offsets), 0.0)
+        cost = dist_sq + 2.0 * (dpsi ** 2) + index_bias
 
         if np.any(forward_mask):
-            best_local = int(np.argmin(np.where(forward_mask, dist_sq, np.inf)))
+            best_local = int(np.argmin(np.where(forward_mask, cost, np.inf)))
         else:
-            best_local = int(np.argmin(dist_sq))
+            best_local = int(np.argmin(cost))
 
         closest_idx = int(search_indices[best_local])
         min_dist = math.sqrt(dist_sq[best_local])
@@ -300,27 +315,47 @@ class MPCControllerNode(Node):
             all_dpsi = (self.path_headings - cur_yaw + math.pi) % (2.0 * math.pi) - math.pi
             valid_mask = np.cos(all_dpsi) > 0.0
             if np.any(valid_mask):
-                all_cost = np.where(valid_mask, all_dist_sq + 4.0 * (all_dpsi ** 2), np.inf)
-                closest_idx = int(np.argmin(all_cost))
+                closest_idx = int(np.argmin(np.where(valid_mask, all_dist_sq + 4.0 * (all_dpsi ** 2), np.inf)))
             else:
                 closest_idx = int(np.argmin(all_dist_sq))
 
         self._last_idx = closest_idx
 
-        # Build N+1 horizon references based on cumulative arc length
+        # Build N+1 horizon references with smooth continuous linear interpolation along arc length
         ref_horizon = np.zeros((self.N + 1, 4))
         cur_s = self.s_arr[closest_idx]
         speed_est = max(1.5, cur_v)
 
         for k in range(self.N + 1):
             s_target = (cur_s + k * speed_est * self.dt) % self.track_length
-            s_diff = np.abs(self.s_arr - s_target)
-            idx_k = int(np.argmin(s_diff))
 
-            ref_horizon[k, 0] = self.waypoints[idx_k, 0]
-            ref_horizon[k, 1] = self.waypoints[idx_k, 1]
-            ref_horizon[k, 2] = self.path_headings[idx_k]
-            ref_horizon[k, 3] = self.scaled_target_speeds[idx_k]
+            # Find segment [idx_a, idx_b] containing s_target
+            idx_a = int(np.searchsorted(self.s_arr, s_target, side='right') - 1)
+            idx_a = max(0, min(self.num_waypoints - 1, idx_a))
+            idx_b = (idx_a + 1) % self.num_waypoints
+
+            s_a = self.s_arr[idx_a]
+            if idx_a == self.num_waypoints - 1:
+                # Segment bridging last waypoint and first waypoint across start/finish
+                seg_len = self.track_length - s_a
+                ds = s_target - s_a if s_target >= s_a else (s_target + self.track_length - s_a)
+            else:
+                s_b = self.s_arr[idx_b]
+                seg_len = s_b - s_a
+                ds = s_target - s_a
+
+            t = float(np.clip(ds / max(seg_len, 1e-4), 0.0, 1.0))
+
+            # Continuous linear interpolation of position
+            ref_horizon[k, 0] = (1.0 - t) * self.waypoints[idx_a, 0] + t * self.waypoints[idx_b, 0]
+            ref_horizon[k, 1] = (1.0 - t) * self.waypoints[idx_a, 1] + t * self.waypoints[idx_b, 1]
+
+            # Shortest-arc angular interpolation of heading
+            dpsi_seg = (self.path_headings[idx_b] - self.path_headings[idx_a] + math.pi) % (2.0 * math.pi) - math.pi
+            ref_horizon[k, 2] = (self.path_headings[idx_a] + t * dpsi_seg + math.pi) % (2.0 * math.pi) - math.pi
+
+            # Continuous linear interpolation of target speed
+            ref_horizon[k, 3] = (1.0 - t) * self.scaled_target_speeds[idx_a] + t * self.scaled_target_speeds[idx_b]
 
         return ref_horizon, closest_idx
 
@@ -337,6 +372,14 @@ class MPCControllerNode(Node):
                 f"Connected to simulator on '{self.odom_topic}'! MPC controller is now actively driving."
             )
 
+        # Determine actual dt between consecutive callbacks for accurate slew limiting
+        now_sec = float(odom_msg.header.stamp.sec) + float(odom_msg.header.stamp.nanosec) * 1e-9
+        if self._last_odom_time is not None and now_sec > self._last_odom_time:
+            dt_actual = min(0.1, max(0.005, now_sec - self._last_odom_time))
+        else:
+            dt_actual = 0.04
+        self._last_odom_time = now_sec
+
         # 1. Extract vehicle state
         pos = odom_msg.pose.pose.position
         q = odom_msg.pose.pose.orientation
@@ -352,15 +395,29 @@ class MPCControllerNode(Node):
         # 2. Extract reference horizon
         ref_horizon, closest_idx = self._extract_reference_horizon(cur_x, cur_y, cur_yaw, cur_v)
 
-        # 3. Heading check relative to closest path tangent
+        # 3. Dynamic curvature lookahead for regime-adaptive weight scheduling
+        # Evaluates peak curvature across upcoming ~15 waypoints (~3 meters ahead)
+        k_lookahead = max(abs(float(self.kappa[(closest_idx + w) % self.num_waypoints])) for w in range(15))
+
+        # Regime classification with hysteresis
+        if self._current_regime == 'CORNER':
+            if k_lookahead < 0.032:
+                self._current_regime = 'STRAIGHT'
+                self.optimizer.update_weights(w_x=4.0, w_y=4.0, w_psi=2.0, w_delta=0.60, w_ddelta=3.0)
+        else:
+            if k_lookahead >= 0.040:
+                self._current_regime = 'CORNER'
+                self.optimizer.update_weights(w_x=8.0, w_y=8.0, w_psi=3.2, w_delta=0.20, w_ddelta=1.5)
+
+        # 4. Heading check relative to closest path tangent
         heading_err = (self.path_headings[closest_idx] - cur_yaw + math.pi) % (2.0 * math.pi) - math.pi
 
-        # If vehicle spun out or facing backwards (> 85 degrees), apply recovery steering
-        wrong_way = abs(heading_err) > math.radians(85)
+        # If vehicle spun out or facing backwards (> 55 degrees), apply recovery steering
+        recovery_mode = abs(heading_err) > math.radians(55)
 
-        if wrong_way:
+        if recovery_mode:
             # Safe recovery pursuit: steer directly towards path tangent and limit speed
-            steer_cmd = float(np.clip(heading_err, -self.optimizer.cfg.max_steer, self.optimizer.cfg.max_steer))
+            steer_cmd = float(np.clip(heading_err * 1.5, -self.optimizer.cfg.max_steer, self.optimizer.cfg.max_steer))
             target_v = self.min_corner_speed
             self._last_control = (0.0, steer_cmd)
             self._last_speed_cmd = target_v
@@ -383,7 +440,8 @@ class MPCControllerNode(Node):
                 n_beams = len(ranges)
                 angle_min = self._last_scan.angle_min
                 angle_inc = self._last_scan.angle_increment if self._last_scan.angle_increment > 0 else (4.7 / max(n_beams, 1))
-                angles = angle_min + np.arange(n_beams) * angle_inc - steer_cmd  # Relative to steered direction
+                # Sensor beams fixed in base_link robot chassis frame
+                angles = angle_min + np.arange(n_beams) * angle_inc
                 valid = np.isfinite(ranges) & (ranges >= max(0.10, self._last_scan.range_min)) & (ranges <= min(25.0, self._last_scan.range_max))
                 if np.any(valid):
                     r_val = ranges[valid]
@@ -411,27 +469,28 @@ class MPCControllerNode(Node):
             if abs(heading_err) > 0.35:
                 v_target *= 0.85
 
-            # 5. Smooth longitudinal rate-limiting (acceleration / braking slew)
-            dt_slew = self.dt if self.dt > 0 else 0.08
-            v_cmd_max = self._last_speed_cmd + self.max_accel * dt_slew
-            v_cmd_min = self._last_speed_cmd - self.max_decel * dt_slew
+            # 5. Smooth longitudinal rate-limiting using true dt
+            v_cmd_max = self._last_speed_cmd + self.max_accel * dt_actual
+            v_cmd_min = self._last_speed_cmd - self.max_decel * dt_actual
             if self._last_speed_cmd < 0.2 and v_target > 0.5:
                 v_cmd_max = max(v_cmd_max, 0.8)
 
             target_v = float(np.clip(v_target, max(0.0, v_cmd_min), min(self.max_straight_speed, v_cmd_max)))
             self._last_speed_cmd = target_v
 
-        # Micro-deadband filter: suppress sub-0.2 degree servo chatter and tiny vibrations
+        # Hardware-realistic steering slew-rate limiter [rad/s] based on actual dt
+        max_steer_rate = float(self.optimizer.cfg.max_steer_rate)  # 2.0 rad/s
+        max_dsteer = max_steer_rate * dt_actual
+        steer_cmd = float(np.clip(steer_cmd, self._last_steer_cmd - max_dsteer, self._last_steer_cmd + max_dsteer))
+
+        # Micro-deadband filter: suppress sub-threshold servo flutter on straights
         if abs(steer_cmd - self._last_steer_cmd) < self.steer_deadband_rad:
             steer_cmd = self._last_steer_cmd
         else:
             self._last_steer_cmd = steer_cmd
 
-        # Smooth commanded steering via 1st-order EMA filter if alpha < 1.0
-        if self.steer_ema_alpha < 1.0:
-            self._filtered_steer = self.steer_ema_alpha * steer_cmd + (1.0 - self.steer_ema_alpha) * self._filtered_steer
-        else:
-            self._filtered_steer = steer_cmd
+        # Direct commanded steering without EMA phase lag
+        self._filtered_steer = steer_cmd
 
         # 4. Publish drive command
         drive_msg = AckermannDriveStamped()
@@ -446,7 +505,7 @@ class MPCControllerNode(Node):
             # Immediate target marker
             self._publish_target_marker(ref_horizon[1, 0], ref_horizon[1, 1])
             # Green predicted trajectory ribbon
-            if not wrong_way and len(res.predicted_x) > 0:
+            if not recovery_mode and len(res.predicted_x) > 0:
                 self._publish_horizon_marker(res.predicted_x, res.predicted_y)
 
     def _publish_path_marker(self):

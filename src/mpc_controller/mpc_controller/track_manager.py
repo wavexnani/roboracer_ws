@@ -15,6 +15,12 @@ import yaml
 from dataclasses import dataclass
 from typing import Optional, Tuple, List
 
+try:
+    from scipy.ndimage import gaussian_filter1d
+    HAS_GAUSSIAN_FILTER = True
+except ImportError:
+    HAS_GAUSSIAN_FILTER = False
+
 
 @dataclass
 class TrackInfo:
@@ -265,9 +271,9 @@ class TrackManager:
                                     if dist_to_cl > 1e-3:
                                         shifts[i] = (v_to_cl / dist_to_cl) * (safe_dist - d)
 
-                            shifts[:, 0] = gaussian_filter1d(shifts[:, 0], sigma=2.0, mode='wrap')
-                            shifts[:, 1] = gaussian_filter1d(shifts[:, 1], sigma=2.0, mode='wrap')
-                            waypoints += shifts * 1.20
+                            shifts[:, 0] = gaussian_filter1d(shifts[:, 0], sigma=4.0, mode='wrap')
+                            shifts[:, 1] = gaussian_filter1d(shifts[:, 1], sigma=4.0, mode='wrap')
+                            waypoints += shifts * 1.05
 
                         # 2. Strict obstacle clearance floor check
                         for i in range(len(waypoints)):
@@ -303,11 +309,14 @@ class TrackManager:
                         denom = np.where(denom < 1e-6, 1e-6, denom)
                         kappa_pad = (dx * ddy - dy * ddx) / denom
                         kappa = kappa_pad[N_pad:-N_pad]
-                        kappa = gaussian_filter1d(kappa, sigma=2.5, mode='wrap')
+                        kappa = gaussian_filter1d(kappa, sigma=5.0, mode='wrap')
 
                         headings_pad = np.arctan2(dy, dx)
                         headings = headings_pad[N_pad:-N_pad]
                         headings = (headings + math.pi) % (2.0 * math.pi) - math.pi
+                        sin_h = gaussian_filter1d(np.sin(headings), sigma=3.0, mode='wrap')
+                        cos_h = gaussian_filter1d(np.cos(headings), sigma=3.0, mode='wrap')
+                        headings = np.arctan2(sin_h, cos_h)
 
                 except Exception as e:
                     print(f"[TrackManager] Warning during map safety clearance check: {e}")
@@ -329,11 +338,15 @@ class TrackManager:
             # Smooth forward-backward longitudinal acceleration/deceleration profiling
             diffs = np.diff(waypoints, axis=0)
             dists = np.hypot(diffs[:, 0], diffs[:, 1])
-            for _ in range(4):
-                # Backward pass (pre-braking into corners ahead of time)
+            closure_step = float(np.hypot(waypoints[0, 0] - waypoints[-1, 0], waypoints[0, 1] - waypoints[-1, 1]))
+            if closure_step < 1e-4:
+                closure_step = dists[0] if len(dists) > 0 else 0.2
+
+            for _ in range(6):
+                # Backward pass (pre-braking into corners ahead of time across lap boundary)
                 for i in range(N_pts - 1, -1, -1):
                     i_next = (i + 1) % N_pts
-                    ds_step = dists[i] if i < len(dists) else dists[-1]
+                    ds_step = dists[i] if i < len(dists) else closure_step
                     v_max_brake = math.sqrt(target_speeds[i_next]**2 + 2.0 * a_brake_max * ds_step)
                     if target_speeds[i] > v_max_brake:
                         target_speeds[i] = v_max_brake
@@ -341,10 +354,13 @@ class TrackManager:
                 # Forward pass (smooth acceleration out of corners onto straights)
                 for i in range(N_pts):
                     i_prev = (i - 1) % N_pts
-                    ds_step = dists[i_prev] if i_prev < len(dists) else dists[0]
+                    ds_step = dists[i_prev] if i_prev < len(dists) else closure_step
                     v_max_accel = math.sqrt(target_speeds[i_prev]**2 + 2.0 * a_accel_max * ds_step)
                     if target_speeds[i] > v_max_accel:
                         target_speeds[i] = v_max_accel
+
+            if HAS_GAUSSIAN_FILTER:
+                target_speeds = gaussian_filter1d(target_speeds, sigma=3.0, mode='wrap')
 
         elif cols >= 2:
             # 4-column centerline [x, y, w_right, w_left] or 2-column [x, y]
@@ -378,19 +394,26 @@ class TrackManager:
             target_speeds = np.where(k_lookahead < 0.04, max_straight_speed, target_speeds)
 
             # Smooth forward-backward longitudinal acceleration/deceleration profiling
-            for _ in range(4):
+            closure_step = float(np.hypot(waypoints[0, 0] - waypoints[-1, 0], waypoints[0, 1] - waypoints[-1, 1]))
+            if closure_step < 1e-4:
+                closure_step = dists[0] if len(dists) > 0 else 0.2
+
+            for _ in range(6):
                 for i in range(N_pts - 1, -1, -1):
                     i_next = (i + 1) % N_pts
-                    ds_step = dists[i] if i < len(dists) else dists[-1]
+                    ds_step = dists[i] if i < len(dists) else closure_step
                     v_max_brake = math.sqrt(target_speeds[i_next]**2 + 2.0 * a_brake_max * ds_step)
                     if target_speeds[i] > v_max_brake:
                         target_speeds[i] = v_max_brake
                 for i in range(N_pts):
                     i_prev = (i - 1) % N_pts
-                    ds_step = dists[i_prev] if i_prev < len(dists) else dists[0]
+                    ds_step = dists[i_prev] if i_prev < len(dists) else closure_step
                     v_max_accel = math.sqrt(target_speeds[i_prev]**2 + 2.0 * a_accel_max * ds_step)
                     if target_speeds[i] > v_max_accel:
                         target_speeds[i] = v_max_accel
+
+            if HAS_GAUSSIAN_FILTER:
+                target_speeds = gaussian_filter1d(target_speeds, sigma=3.0, mode='wrap')
         else:
             raise ValueError(f"Unrecognized waypoint CSV format with {cols} columns: {active_csv}")
 
