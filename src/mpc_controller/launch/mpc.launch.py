@@ -26,6 +26,13 @@ def launch_setup(context, *args, **kwargs):
     max_lat_accel_str = context.launch_configurations.get('max_lat_accel', '2.5').strip()
     steer_deadband_str = context.launch_configurations.get('steer_deadband', '0.0035').strip()
     scan_topic_str = context.launch_configurations.get('scan_topic', '/scan').strip()
+    steering_policy_str = context.launch_configurations.get('steering_policy', 'RAW').strip()
+    policy_hold_threshold_str = context.launch_configurations.get('policy_hold_threshold_rad', '0.016').strip()
+    policy_lattice_quantum_str = context.launch_configurations.get('policy_lattice_quantum_rad', '0.032').strip()
+    nominal_actuator_delay_str = context.launch_configurations.get('nominal_actuator_delay_s', '0.020').strip()
+    nominal_actuator_slew_str = context.launch_configurations.get('nominal_actuator_slew_rad_s', '3.20').strip()
+    model_type_str = context.launch_configurations.get('model_type', 'yaw_first_order').strip()
+    actuator_delay_s_str = context.launch_configurations.get('actuator_delay_s', '0.020').strip()
     launch_sim_bool = context.launch_configurations.get('launch_sim', 'false').strip().lower() in ('true', '1')
     autofocus_str = context.launch_configurations.get('autofocus', 'true').strip()
 
@@ -64,6 +71,13 @@ def launch_setup(context, *args, **kwargs):
             'max_lat_accel': float(max_lat_accel_str),
             'steer_deadband_rad': float(steer_deadband_str),
             'scan_topic': scan_topic_str,
+            'steering_policy': steering_policy_str,
+            'policy_hold_threshold_rad': float(policy_hold_threshold_str),
+            'policy_lattice_quantum_rad': float(policy_lattice_quantum_str),
+            'nominal_actuator_delay_s': float(nominal_actuator_delay_str),
+            'nominal_actuator_slew_rad_s': float(nominal_actuator_slew_str),
+            'model_type': model_type_str,
+            'actuator_delay_s': float(actuator_delay_s_str),
             'sync_sim_map': True,
             'publish_initial_pose': True
         }]
@@ -132,6 +146,41 @@ def generate_launch_description():
         default_value='/scan',
         description='LaserScan topic name for obstacle detection'
     )
+    steering_policy_arg = DeclareLaunchArgument(
+        'steering_policy',
+        default_value='RAW',
+        description='Steering policy to apply before publication (RAW, HOLD16, HOLD_LATTICE16)'
+    )
+    policy_hold_threshold_arg = DeclareLaunchArgument(
+        'policy_hold_threshold_rad',
+        default_value='0.016',
+        description='Policy hold deadband threshold radius [rad] (default: 0.016)'
+    )
+    policy_lattice_quantum_arg = DeclareLaunchArgument(
+        'policy_lattice_quantum_rad',
+        default_value='0.032',
+        description='Policy lattice quantum grid spacing [rad] (default: 0.032)'
+    )
+    nominal_actuator_delay_arg = DeclareLaunchArgument(
+        'nominal_actuator_delay_s',
+        default_value='0.020',
+        description='Nominal actuator transport delay assumption [s] (default: 0.020)'
+    )
+    nominal_actuator_slew_arg = DeclareLaunchArgument(
+        'nominal_actuator_slew_rad_s',
+        default_value='3.20',
+        description='Nominal actuator slew rate limit [rad/s] (default: 3.20)'
+    )
+    model_type_arg = DeclareLaunchArgument(
+        'model_type',
+        default_value='yaw_first_order',
+        description='MPC prediction model type (kinematic or yaw_first_order)'
+    )
+    actuator_delay_s_arg = DeclareLaunchArgument(
+        'actuator_delay_s',
+        default_value='0.020',
+        description='Actuator delay compensation in MPC dynamics [s] (default: 0.020)'
+    )
     launch_sim_arg = DeclareLaunchArgument(
         'launch_sim',
         default_value='false',
@@ -152,6 +201,13 @@ def generate_launch_description():
         max_lat_accel_arg,
         steer_deadband_arg,
         scan_topic_arg,
+        steering_policy_arg,
+        policy_hold_threshold_arg,
+        policy_lattice_quantum_arg,
+        nominal_actuator_delay_arg,
+        nominal_actuator_slew_arg,
+        model_type_arg,
+        actuator_delay_s_arg,
         launch_sim_arg,
         autofocus_arg,
         OpaqueFunction(function=launch_setup)

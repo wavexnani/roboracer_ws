@@ -58,6 +58,18 @@ class MPCConfig:
     min_speed: float = 0.0         # Min velocity [m/s]
     max_speed: float = 12.0        # Max velocity [m/s]
 
+    # Actuator transport delay parameter (Experiment 8)
+    actuator_delay_s: float = 0.0  # Transport delay [s] (e.g. 0.020 s for 20 ms delay)
+
+    # Predictive model configuration (Experiment 11)
+    # "kinematic": 4-state [x, y, psi, v]
+    # "yaw_first_order": 5-state [x, y, psi, v, r] using:
+    # "exact ZOH discretization of the identified first-order yaw model combined with the Experiment-8 effective 20 ms transport-delay approximation."
+    model_type: str = "kinematic"
+    yaw_K: float = 15.4016         # Identified steady-state yaw gain at 7.5 m/s
+    yaw_tau: float = 0.0363        # Identified yaw relaxation time constant [s]
+    w_r: float = 0.0               # Yaw rate tracking weight (frozen at 0.0 for Experiment 11)
+
 
 @dataclass
 class MPCResult:
@@ -70,7 +82,8 @@ class MPCResult:
     predicted_y: np.ndarray         # (N+1,) predicted Y trajectory [m]
     predicted_psi: np.ndarray       # (N+1,) predicted yaw [rad]
     predicted_v: np.ndarray         # (N+1,) predicted speed [m/s]
-    solve_time_ms: float            # QP solver execution time in ms
+    predicted_r: Optional[np.ndarray] = None  # (N+1,) predicted yaw rate [rad/s] (for 5-state model)
+    solve_time_ms: float = 0.0      # QP solver execution time in ms
 
 
 class MPCOptimizer:
@@ -80,7 +93,31 @@ class MPCOptimizer:
 
     def __init__(self, config: Optional[MPCConfig] = None):
         self.cfg = config or MPCConfig()
-        self.nx = 4  # [x, y, psi, v]
+        if self.cfg.model_type == "yaw_first_order":
+            self.nx = 5  # [x, y, psi, v, r]
+            # Exact ZOH discretization of the identified first-order yaw model
+            # combined with the Experiment-8 effective 20 ms transport-delay approximation:
+            # Continuous: r_dot = -(1/tau)*r + (K/tau)*delta_delayed
+            #             psi_dot = r
+            # Discrete ZOH over T = dt:
+            # a = exp(-T / tau)
+            # r[k+1] = a * r[k] + K * (1 - a) * delta_delayed[k]
+            # psi[k+1] = psi[k] + tau * (1 - a) * r[k] + K * (T - tau * (1 - a)) * delta_delayed[k]
+            T = self.cfg.dt
+            tau = self.cfg.yaw_tau
+            K = self.cfg.yaw_K
+            a = math.exp(-T / tau)
+            self.yaw_c_r = a
+            self.yaw_d_r = K * (1.0 - a)
+            self.yaw_c_psi = tau * (1.0 - a)
+            self.yaw_d_psi = K * (T - tau * (1.0 - a))
+        else:
+            self.nx = 4  # [x, y, psi, v]
+            self.yaw_c_r = 0.0
+            self.yaw_d_r = 0.0
+            self.yaw_c_psi = 0.0
+            self.yaw_d_psi = 0.0
+
         self.nu = 2  # [a, delta]
         self.N = self.cfg.N
         self.dt = self.cfg.dt
@@ -123,8 +160,12 @@ class MPCOptimizer:
         u_bar: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
-        Linearizes the kinematic bicycle model around operating point (x_bar, u_bar):
+        Linearizes the vehicle model around operating point (x_bar, u_bar):
         x_{k+1} = A * x_k + B * u_k + c
+
+        For model_type == "kinematic": 4-state [x, y, psi, v]
+        For model_type == "yaw_first_order": 5-state [x, y, psi, v, r] using:
+        "exact ZOH discretization of the identified first-order yaw model combined with the Experiment-8 effective 20 ms transport-delay approximation."
         """
         v = float(x_bar[3])
         psi = float(x_bar[2])
@@ -140,25 +181,43 @@ class MPCOptimizer:
 
         # State transition matrix A
         A = np.eye(self.nx)
+        # Position kinematics (preserves Experiment-8 x/y linearization)
         A[0, 2] = -v * sin_psi * dt
         A[0, 3] = cos_psi * dt
         A[1, 2] = v * cos_psi * dt
         A[1, 3] = sin_psi * dt
-        A[2, 3] = (tan_delta / L) * dt
 
         # Control input matrix B
         B = np.zeros((self.nx, self.nu))
-        B[2, 1] = (v / (L * cos_delta_sq)) * dt
-        B[3, 0] = dt
+        B[3, 0] = dt  # v_{k+1} = v_k + a_k * dt
 
-        # Affine offset term: c = f(x_bar, u_bar)*dt - A*x_bar - B*u_bar + x_bar
-        f = np.array([
-            v * cos_psi,
-            v * sin_psi,
-            (v / L) * tan_delta,
-            float(u_bar[0])
-        ])
-        c = f * dt - A @ x_bar - B @ u_bar + x_bar
+        if self.nx == 5:
+            # Exact ZOH discretization of the identified first-order yaw model:
+            # psi_{k+1} = psi_k + tau*(1-a)*r_k + K*(T - tau*(1-a))*delta_delayed[k]
+            # r_{k+1}   = a*r_k + K*(1-a)*delta_delayed[k]
+            A[2, 4] = self.yaw_c_psi
+            B[2, 1] = self.yaw_d_psi
+            A[4, 4] = self.yaw_c_r
+            B[4, 1] = self.yaw_d_r
+
+            # Affine term c:
+            # Rows 0 and 1 are linearized kinematics: c = f(x_bar)*dt - A*x_bar
+            # Rows 2, 3, 4 are strictly linear: c = 0
+            c = np.zeros(self.nx)
+            c[0] = v * cos_psi * dt - (A[0, :4] @ x_bar[:4]) + x_bar[0]
+            c[1] = v * sin_psi * dt - (A[1, :4] @ x_bar[:4]) + x_bar[1]
+        else:
+            # Kinematic bicycle model
+            A[2, 3] = (tan_delta / L) * dt
+            B[2, 1] = (v / (L * cos_delta_sq)) * dt
+
+            f = np.array([
+                v * cos_psi,
+                v * sin_psi,
+                (v / L) * tan_delta,
+                float(u_bar[0])
+            ])
+            c = f * dt - A @ x_bar[:self.nx] - B @ u_bar + x_bar[:self.nx]
 
         return A, B, c
 
@@ -223,34 +282,81 @@ class MPCOptimizer:
         nu = self.nu
         n_vars = (N + 1) * nx + N * nu
 
+        if len(x0) < nx:
+            x0 = np.append(x0, 0.0)
+
         # State cost weights
-        q_diag = np.array([self.cfg.w_x, self.cfg.w_y, self.cfg.w_psi, self.cfg.w_v])
+        if nx == 5:
+            q_diag = np.array([self.cfg.w_x, self.cfg.w_y, self.cfg.w_psi, self.cfg.w_v, self.cfg.w_r])
+        else:
+            q_diag = np.array([self.cfg.w_x, self.cfg.w_y, self.cfg.w_psi, self.cfg.w_v])
         q_term_diag = q_diag * self.cfg.w_terminal_scale
         r_diag = np.array([self.cfg.w_a, self.cfg.w_delta])
         rd_diag = np.array([self.cfg.w_da, self.cfg.w_ddelta])
 
-        # Quadratic cost matrix P (sparse diagonal)
-        P_diag = np.zeros(n_vars)
+        # Quadratic cost matrix P and linear cost vector q
+        P_rows = []
+        P_cols = []
+        P_data = []
         q_vec = np.zeros(n_vars)
 
         # Populate state costs (k = 0 to N)
         for k in range(N):
             idx = k * nx
-            P_diag[idx:idx + nx] = q_diag * 2.0
-            q_vec[idx:idx + nx] = -2.0 * q_diag * x_ref[k]
+            for i in range(nx):
+                P_rows.append(idx + i)
+                P_cols.append(idx + i)
+                P_data.append(q_diag[i] * 2.0)
+            q_vec[idx:idx + 4] = -2.0 * q_diag[:4] * x_ref[k][:4]
+            if nx == 5:
+                q_vec[idx + 4] = 0.0
 
         # Terminal state cost
         term_idx = N * nx
-        P_diag[term_idx:term_idx + nx] = q_term_diag * 2.0
-        q_vec[term_idx:term_idx + nx] = -2.0 * q_term_diag * x_ref[N]
+        for i in range(nx):
+            P_rows.append(term_idx + i)
+            P_cols.append(term_idx + i)
+            P_data.append(q_term_diag[i] * 2.0)
+        q_vec[term_idx:term_idx + 4] = -2.0 * q_term_diag[:4] * x_ref[N][:4]
+        if nx == 5:
+            q_vec[term_idx + 4] = 0.0
 
-        # Control effort costs (k = 0 to N-1)
+        # Control effort and control rate costs (k = 0 to N-1)
         u_offset = (N + 1) * nx
         for k in range(N):
             uidx = u_offset + k * nu
-            P_diag[uidx:uidx + nu] = (r_diag + rd_diag) * 2.0
-            if k == 0:
-                q_vec[uidx:uidx + nu] = -2.0 * rd_diag * np.array([self.last_accel, self.last_steer])
+
+            # Diagonal block terms:
+            # k = 0: 2 * (R + 2*Rd) (if N > 1)
+            # 1 <= k <= N-2: 2 * (R + 2*Rd)
+            # k = N-1: 2 * (R + Rd)
+            if N == 1:
+                diag_val = (r_diag + rd_diag) * 2.0
+            elif k == N - 1:
+                diag_val = (r_diag + rd_diag) * 2.0
+            else:
+                diag_val = (r_diag + 2.0 * rd_diag) * 2.0
+
+            for j in range(nu):
+                P_rows.append(uidx + j)
+                P_cols.append(uidx + j)
+                P_data.append(diag_val[j])
+
+            # Off-diagonal block terms connecting u_k and u_{k-1}: -2*Rd
+            if k > 0:
+                u_prev = u_offset + (k - 1) * nu
+                for j in range(nu):
+                    # P[u_k, u_{k-1}]
+                    P_rows.append(uidx + j)
+                    P_cols.append(u_prev + j)
+                    P_data.append(-2.0 * rd_diag[j])
+                    # P[u_{k-1}, u_k]
+                    P_rows.append(u_prev + j)
+                    P_cols.append(uidx + j)
+                    P_data.append(-2.0 * rd_diag[j])
+
+        # Control rate linear term on step 0: -2*Rd*u_prev
+        q_vec[u_offset:u_offset + nu] = -2.0 * rd_diag * np.array([self.last_accel, self.last_steer])
 
         # Build linear dynamics around reference trajectory operating points
         # Dynamics constraints: x_{k+1} - A_k x_k - B_k u_k = c_k (N * nx constraints)
@@ -298,13 +404,38 @@ class MPCOptimizer:
                 col_ind.append((k + 1) * nx + r)
                 data.append(1.0)
 
-            # -B_k * u_k
-            for r in range(nx):
-                for c in range(nu):
-                    if abs(B_k[r, c]) > 1e-6:
-                        row_ind.append(constr_row + r)
-                        col_ind.append(u_offset + k * nu + c)
-                        data.append(-B_k[r, c])
+            # -B_k * u_k (with optional actuator transport delay compensation)
+            # Row 3 is acceleration (u_k[0] = a_k, not delayed)
+            if abs(B_k[3, 0]) > 1e-6:
+                row_ind.append(constr_row + 3)
+                col_ind.append(u_offset + k * nu + 0)
+                data.append(-B_k[3, 0])
+
+            # Steering inputs (affects row 2 for yaw/heading, and row 4 for yaw rate in 5-state model)
+            alpha = float(np.clip(self.cfg.actuator_delay_s / 0.040, 0.0, 1.0))
+            for r_state in range(nx):
+                b_steer = B_k[r_state, 1]
+                if abs(b_steer) > 1e-6:
+                    if alpha > 1e-5:
+                        # Exact ZOH discretization of the identified first-order yaw model
+                        # combined with the Experiment-8 effective 20 ms transport-delay approximation:
+                        # delta_delayed[k] = alpha * delta[k-1] + (1 - alpha) * delta[k]
+                        row_ind.append(constr_row + r_state)
+                        col_ind.append(u_offset + k * nu + 1)
+                        data.append(-b_steer * (1.0 - alpha))
+
+                        if k == 0:
+                            c_k = np.copy(c_k)
+                            c_k[r_state] += b_steer * alpha * self.last_steer
+                        else:
+                            row_ind.append(constr_row + r_state)
+                            col_ind.append(u_offset + (k - 1) * nu + 1)
+                            data.append(-b_steer * alpha)
+                    else:
+                        # Baseline instantaneous steering
+                        row_ind.append(constr_row + r_state)
+                        col_ind.append(u_offset + k * nu + 1)
+                        data.append(-b_steer)
 
             # Affine equality bound: = c_k
             for r in range(nx):
@@ -341,7 +472,7 @@ class MPCOptimizer:
             constr_row += 1
 
         # Build sparse matrices
-        P_sparse = sp.diags(P_diag, format='csc')
+        P_sparse = sp.csc_matrix((P_data, (P_rows, P_cols)), shape=(n_vars, n_vars))
         A_sparse = sp.csc_matrix((data, (row_ind, col_ind)), shape=(constr_row, n_vars))
 
         # Decision variable box bounds
@@ -401,6 +532,7 @@ class MPCOptimizer:
                 pred_y = np.array([x_sol[k * nx + 1] for k in range(N + 1)])
                 pred_psi = np.array([x_sol[k * nx + 2] for k in range(N + 1)])
                 pred_v = np.array([x_sol[k * nx + 3] for k in range(N + 1)])
+                pred_r = np.array([x_sol[k * nx + 4] for k in range(N + 1)]) if nx == 5 else None
 
                 target_speed = float(pred_v[1])
 
@@ -413,6 +545,7 @@ class MPCOptimizer:
                     predicted_y=pred_y,
                     predicted_psi=pred_psi,
                     predicted_v=pred_v,
+                    predicted_r=pred_r,
                     solve_time_ms=0.0
                 )
         except Exception:
@@ -427,6 +560,7 @@ class MPCOptimizer:
             predicted_y=np.array([]),
             predicted_psi=np.array([]),
             predicted_v=np.array([]),
+            predicted_r=None,
             solve_time_ms=0.0
         )
 
@@ -441,19 +575,26 @@ class MPCOptimizer:
             nx = self.nx
             nu = self.nu
 
+            if len(x0) < nx:
+                x0 = np.append(x0, 0.0)
+
             x = cp.Variable((nx, N + 1))
             u = cp.Variable((nu, N))
 
             cost = 0
             constr = [x[:, 0] == x0]
 
-            Q = np.diag([self.cfg.w_x, self.cfg.w_y, self.cfg.w_psi, self.cfg.w_v])
+            if nx == 5:
+                Q = np.diag([self.cfg.w_x, self.cfg.w_y, self.cfg.w_psi, self.cfg.w_v, self.cfg.w_r])
+            else:
+                Q = np.diag([self.cfg.w_x, self.cfg.w_y, self.cfg.w_psi, self.cfg.w_v])
             Q_term = Q * self.cfg.w_terminal_scale
             R = np.diag([self.cfg.w_a, self.cfg.w_delta])
             R_d = np.diag([self.cfg.w_da, self.cfg.w_ddelta])
 
             for k in range(N):
-                cost += cp.quad_form(x[:, k] - x_ref[k], Q)
+                x_ref_k = np.append(x_ref[k][:4], 0.0) if nx == 5 else x_ref[k][:4]
+                cost += cp.quad_form(x[:, k] - x_ref_k, Q)
                 cost += cp.quad_form(u[:, k], R)
                 if k == 0:
                     cost += cp.quad_form(u[:, 0] - np.array([self.last_accel, self.last_steer]), R_d)
@@ -461,7 +602,18 @@ class MPCOptimizer:
                     cost += cp.quad_form(u[:, k] - u[:, k - 1], R_d)
 
                 A_k, B_k, c_k = self.linearize_kinematics(x_ref[k], np.zeros(2))
-                constr += [x[:, k + 1] == A_k @ x[:, k] + B_k @ u[:, k] + c_k]
+                alpha = float(np.clip(self.cfg.actuator_delay_s / 0.040, 0.0, 1.0))
+                if alpha > 1e-5:
+                    u_eff_k = cp.vstack([
+                        u[0, k],
+                        (1.0 - alpha) * u[1, k] + alpha * self.last_steer
+                    ]) if k == 0 else cp.vstack([
+                        u[0, k],
+                        (1.0 - alpha) * u[1, k] + alpha * u[1, k - 1]
+                    ])
+                    constr += [x[:, k + 1] == A_k @ x[:, k] + B_k @ u_eff_k + c_k]
+                else:
+                    constr += [x[:, k + 1] == A_k @ x[:, k] + B_k @ u[:, k] + c_k]
 
                 # Bounds
                 constr += [
@@ -486,7 +638,8 @@ class MPCOptimizer:
                         u[1, k] - u[1, k - 1] <= max_delta_steer
                     ]
 
-            cost += cp.quad_form(x[:, N] - x_ref[N], Q_term)
+            x_ref_N = np.append(x_ref[N][:4], 0.0) if nx == 5 else x_ref[N][:4]
+            cost += cp.quad_form(x[:, N] - x_ref_N, Q_term)
             prob = cp.Problem(cp.Minimize(cost), constr)
             prob.solve(solver=cp.OSQP, warm_start=True, verbose=False)
 
@@ -497,6 +650,7 @@ class MPCOptimizer:
                 pred_y = np.array(x.value[1, :])
                 pred_psi = np.array(x.value[2, :])
                 pred_v = np.array(x.value[3, :])
+                pred_r = np.array(x.value[4, :]) if nx == 5 else None
 
                 return MPCResult(
                     success=True,
@@ -507,6 +661,7 @@ class MPCOptimizer:
                     predicted_y=pred_y,
                     predicted_psi=pred_psi,
                     predicted_v=pred_v,
+                    predicted_r=pred_r,
                     solve_time_ms=0.0
                 )
         except Exception:
@@ -521,6 +676,7 @@ class MPCOptimizer:
             predicted_y=np.array([]),
             predicted_psi=np.array([]),
             predicted_v=np.array([]),
+            predicted_r=None,
             solve_time_ms=0.0
         )
 
@@ -530,7 +686,7 @@ class MPCOptimizer:
         ref_trajectory: np.ndarray
     ) -> MPCResult:
         """Fail-safe kinematic proportional pursuit fallback if QP solvers fail."""
-        cur_x, cur_y, cur_yaw, cur_v = current_state
+        cur_x, cur_y, cur_yaw, cur_v = current_state[:4]
         target_pt = ref_trajectory[min(3, len(ref_trajectory) - 1)]
 
         dx = target_pt[0] - cur_x
@@ -566,5 +722,6 @@ class MPCOptimizer:
             predicted_y=np.array(py),
             predicted_psi=np.array(ppsi),
             predicted_v=np.array(pv),
+            predicted_r=np.zeros(len(px)) if self.nx == 5 else None,
             solve_time_ms=0.0
         )
