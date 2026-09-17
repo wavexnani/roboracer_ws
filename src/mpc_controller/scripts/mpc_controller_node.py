@@ -16,12 +16,14 @@ Usage:
 
 import os
 import sys
+import time
 import math
 import numpy as np
 from typing import Optional, List, Tuple
 
 import rclpy
 from rclpy.node import Node
+from rcl_interfaces.msg import SetParametersResult
 from nav_msgs.msg import Odometry
 from ackermann_msgs.msg import AckermannDriveStamped
 from visualization_msgs.msg import Marker
@@ -31,6 +33,7 @@ from sensor_msgs.msg import LaserScan
 try:
     from mpc_controller.track_manager import TrackManager, TrackInfo
     from mpc_controller.mpc_optimizer import MPCOptimizer, MPCConfig, MPCResult
+    from mpc_controller.steering_policy import SteeringPolicyFilter
 except ImportError:
     # Support direct execution without sourcing setup.bash
     cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -51,13 +54,19 @@ except ImportError:
             sys.path.insert(0, c)
     from mpc_controller.track_manager import TrackManager, TrackInfo
     from mpc_controller.mpc_optimizer import MPCOptimizer, MPCConfig, MPCResult
+    from mpc_controller.steering_policy import SteeringPolicyFilter
 
 
 class MPCControllerNode(Node):
     """ROS 2 Node for Model Predictive Control with Multi-Map Ingestion."""
 
-    def __init__(self, map_name_override: Optional[str] = None):
-        super().__init__('mpc_controller_node')
+    def __init__(
+        self,
+        map_name_override: Optional[str] = None,
+        track_override: Optional[TrackInfo] = None,
+        **kwargs
+    ):
+        super().__init__('mpc_controller_node', **kwargs)
 
         # Parameter declarations
         self.declare_parameter('map_name', 'Spielberg')
@@ -68,9 +77,20 @@ class MPCControllerNode(Node):
 
         # Vehicle & MPC Parameters
         self.declare_parameter('wheelbase', 0.33)
-        self.declare_parameter('speed_scale', 0.75)
+        self.declare_parameter('speed_scale', 1.0)
         self.declare_parameter('horizon', 10)
         self.declare_parameter('dt', 0.08)
+
+        # Steering Policy Parameters (Experiment 25B Section 6)
+        self.declare_parameter('steering_policy', 'RAW')
+        self.declare_parameter('policy_hold_threshold_rad', 0.016)
+        self.declare_parameter('policy_lattice_quantum_rad', 0.032)
+        self.declare_parameter('nominal_actuator_delay_s', 0.020)
+        self.declare_parameter('nominal_actuator_slew_rad_s', 3.20)
+
+        # Validated Predictive Model Configuration (Experiment 11 & 24)
+        self.declare_parameter('model_type', 'yaw_first_order')
+        self.declare_parameter('actuator_delay_s', 0.020)
 
         # MPC Cost Weights (Regime-Adaptive Configuration)
         self.declare_parameter('w_x', 4.0)
@@ -109,6 +129,22 @@ class MPCControllerNode(Node):
         self.speed_scale = max(0.1, min(1.0, float(self.get_parameter('speed_scale').value)))
         self.visualize = self.get_parameter('visualize').value
 
+        # Retrieve steering policy parameters
+        self.steering_policy_name = str(self.get_parameter('steering_policy').value).upper()
+        if self.steering_policy_name not in SteeringPolicyFilter.SUPPORTED_POLICIES:
+            raise ValueError(
+                f"Unsupported steering_policy '{self.steering_policy_name}'. "
+                f"Must be one of {SteeringPolicyFilter.SUPPORTED_POLICIES}"
+            )
+        self.policy_hold_threshold_rad = float(self.get_parameter('policy_hold_threshold_rad').value)
+        self.policy_lattice_quantum_rad = float(self.get_parameter('policy_lattice_quantum_rad').value)
+        self.nominal_actuator_delay_s = float(self.get_parameter('nominal_actuator_delay_s').value)
+        self.nominal_actuator_slew_rad_s = float(self.get_parameter('nominal_actuator_slew_rad_s').value)
+
+        # Retrieve predictive model configuration
+        self.model_type = str(self.get_parameter('model_type').value)
+        self.actuator_delay_s = float(self.get_parameter('actuator_delay_s').value)
+
         self.enable_adaptive_speed = bool(self.get_parameter('enable_adaptive_speed').value)
         self.max_straight_speed = float(self.get_parameter('max_straight_speed').value)
         self.min_corner_speed = float(self.get_parameter('min_corner_speed').value)
@@ -122,7 +158,7 @@ class MPCControllerNode(Node):
         self.drive_topic = self.get_parameter('drive_topic').value
         self.initialpose_topic = self.get_parameter('initialpose_topic').value
 
-        # Build MPC configuration
+        # Build MPC configuration with validated model_type and actuator_delay_s
         mpc_cfg = MPCConfig(
             wheelbase=float(self.get_parameter('wheelbase').value),
             dt=float(self.get_parameter('dt').value),
@@ -134,22 +170,41 @@ class MPCControllerNode(Node):
             w_delta=float(self.get_parameter('w_delta').value),
             w_ddelta=float(self.get_parameter('w_ddelta').value),
             w_a=float(self.get_parameter('w_a').value),
+            model_type=self.model_type,
+            actuator_delay_s=self.actuator_delay_s
         )
         self.optimizer = MPCOptimizer(mpc_cfg)
         self.N = mpc_cfg.N
         self.dt = mpc_cfg.dt
 
-        # Load Track Waypoints & Profiles
-        self.track: TrackInfo = TrackManager.load_track(
-            track_name=target_map,
-            waypoint_type=self.waypoint_type,
-            custom_csv_path=self.custom_waypoints_path if self.custom_waypoints_path else None,
-            max_straight_speed=self.max_straight_speed,
-            min_corner_speed=self.min_corner_speed,
-            lat_accel_max=self.max_lat_accel,
-            a_brake_max=self.max_decel,
-            a_accel_max=self.max_accel
+        # Command-Side Model-Based Actuator Observer:
+        # In the production ROS graph, physical steering angle is NOT measured or published.
+        # This filter maintains an internal command-side observer tracking nominal delay and slew.
+        self.steering_policy_filter = SteeringPolicyFilter(
+            policy=self.steering_policy_name,
+            hold_threshold_rad=self.policy_hold_threshold_rad,
+            lattice_quantum_rad=self.policy_lattice_quantum_rad,
+            nominal_delay_s=self.nominal_actuator_delay_s,
+            nominal_slew_rate_rad_s=self.nominal_actuator_slew_rad_s,
+            dt_sim_step_s=0.010,
+            ctrl_period_s=0.040,
+            eps_relay_rad=1e-4
         )
+
+        # Load Track Waypoints & Profiles
+        if track_override is not None:
+            self.track = track_override
+        else:
+            self.track = TrackManager.load_track(
+                track_name=target_map,
+                waypoint_type=self.waypoint_type,
+                custom_csv_path=self.custom_waypoints_path if self.custom_waypoints_path else None,
+                max_straight_speed=self.max_straight_speed,
+                min_corner_speed=self.min_corner_speed,
+                lat_accel_max=self.max_lat_accel,
+                a_brake_max=self.max_decel,
+                a_accel_max=self.max_accel
+            )
 
         self.waypoints = self.track.waypoints
         self.num_waypoints = len(self.waypoints)
@@ -159,25 +214,22 @@ class MPCControllerNode(Node):
         self.scaled_target_speeds = self.track.target_speeds * self.speed_scale
         self.track_length = self.track.track_length
 
-        self._last_idx = 0
-        self._last_control = (0.0, 0.0)  # (accel, steer)
-        self._last_pos = None  # To detect simulator resets
-        self._last_odom_time = None  # For true delta-t slew calculations
         self.steer_ema_alpha = float(self.get_parameter('steer_ema_alpha').value)
         self.steer_deadband_rad = float(self.get_parameter('steer_deadband_rad').value)
-        self._filtered_steer = 0.0
-        self._last_steer_cmd = 0.0
-        self._last_speed_cmd = 0.0
         self._last_scan: Optional[LaserScan] = None
-        self._current_regime = 'STRAIGHT'
-        self.optimizer.update_weights(
-            w_x=4.0,
-            w_y=4.0,
-            w_psi=2.0,
-            w_v=0.8,
-            w_delta=0.60,
-            w_ddelta=3.0
-        )
+
+        # Telemetry signal holders
+        self._last_opt_raw_steer: float = 0.0
+        self._last_policy_steer: float = 0.0
+        self._last_published_steer: float = 0.0
+        self._last_published_drive_msg: Optional[AckermannDriveStamped] = None
+        self._last_timing_audit: dict = {}
+
+        # Initialize deterministic tracking and observer state
+        self.reset(0.0)
+
+        # Dynamic ROS 2 parameter update callback
+        self.add_on_set_parameters_callback(self._on_set_parameters)
 
         # Simulator synchronization
         if self.sync_sim_map:
@@ -218,6 +270,64 @@ class MPCControllerNode(Node):
         self.get_logger().info(
             f"Subscribed to: '{self.odom_topic}' | Publishing to: '{self.drive_topic}'"
         )
+
+    def reset(self, initial_steer: float = 0.0) -> None:
+        """
+        Resets controller internal tracking state and command-side observer deterministically.
+
+        EQUIVALENCE SEMANTICS (Experiment 25B Section 0 & 8):
+        - Nominal SIL Equivalence: initial_steer is strictly 0.0 rad, initializing the observer
+          to cur_delta_est = 0.0 and steer_buffer = [0.0, 0.0], matching Experiment 24 reference.
+        - Observer state persists across 25-Hz control cycles and is only reset at node
+          initialization, when a new run begins, or when a position jump (> 3.0 m) occurs.
+        """
+        self._last_idx = 0
+        self._last_control = (0.0, 0.0)  # (accel, steer)
+        self._last_pos = None
+        self._last_odom_time = None
+        self._last_steer_cmd = float(initial_steer)
+        self._last_speed_cmd = 0.0
+        self._filtered_steer = float(initial_steer)
+        self._last_s_cont = None
+        self._current_regime = 'STRAIGHT'
+        self._last_opt_raw_steer = float(initial_steer)
+        self._last_policy_steer = float(initial_steer)
+        self._last_published_steer = float(initial_steer)
+        self.optimizer.update_weights(
+            w_x=4.0,
+            w_y=4.0,
+            w_psi=2.0,
+            w_v=0.8,
+            w_delta=0.60,
+            w_ddelta=3.0
+        )
+        if hasattr(self, 'steering_policy_filter'):
+            self.steering_policy_filter.reset(initial_steer)
+
+    def _on_set_parameters(self, params: List[rclpy.parameter.Parameter]) -> SetParametersResult:
+        """Dynamically updates node configuration upon ROS parameter changes."""
+        for p in params:
+            if p.name == 'steering_policy':
+                val = str(p.value).upper()
+                if val in SteeringPolicyFilter.SUPPORTED_POLICIES:
+                    self.steering_policy_name = val
+                    if hasattr(self, 'steering_policy_filter'):
+                        self.steering_policy_filter.policy = val
+                else:
+                    return SetParametersResult(successful=False, reason=f"Unsupported steering_policy '{val}'")
+            elif p.name == 'policy_hold_threshold_rad':
+                self.policy_hold_threshold_rad = float(p.value)
+                if hasattr(self, 'steering_policy_filter'):
+                    self.steering_policy_filter._hold_threshold = float(p.value)
+            elif p.name == 'policy_lattice_quantum_rad':
+                self.policy_lattice_quantum_rad = float(p.value)
+                if hasattr(self, 'steering_policy_filter'):
+                    self.steering_policy_filter._lattice_quantum = float(p.value)
+            elif p.name == 'speed_scale':
+                self.speed_scale = max(0.1, min(1.0, float(p.value)))
+                if hasattr(self, 'track'):
+                    self.scaled_target_speeds = self.track.target_speeds * self.speed_scale
+        return SetParametersResult(successful=True)
 
     def _publish_initial_pose_tick(self):
         """Periodically publishes initial pose until simulator connects."""
@@ -278,6 +388,7 @@ class MPCControllerNode(Node):
         if self._last_pos is not None:
             if math.hypot(cur_x - self._last_pos[0], cur_y - self._last_pos[1]) > 3.0:
                 pos_jump = True
+                self.reset(0.0)
         self._last_pos = (cur_x, cur_y)
 
         # Monotonic forward search around last index with forward bias
@@ -321,13 +432,70 @@ class MPCControllerNode(Node):
 
         self._last_idx = closest_idx
 
-        # Build N+1 horizon references with smooth continuous linear interpolation along arc length
+        # Determine closest track segment robustly using offsets [-1, 0, 1] relative to closest_idx
+        cand_offsets = [-1, 0, 1]
+        best_dist_sq = float('inf')
+        best_seg_a = closest_idx
+        best_seg_b = (closest_idx + 1) % self.num_waypoints
+        best_t = 0.0
+        best_s_cont = self.s_arr[closest_idx]
+
+        p = np.array([cur_x, cur_y], dtype=np.float64)
+
+        for offset in cand_offsets:
+            ia = (closest_idx + offset) % self.num_waypoints
+            ib = (ia + 1) % self.num_waypoints
+            pa = self.waypoints[ia]
+            pb = self.waypoints[ib]
+            v = pb - pa
+            L2 = float(np.dot(v, v))
+            if L2 < 1e-12:
+                t = 0.0
+            else:
+                t = float(np.clip(np.dot(p - pa, v) / L2, 0.0, 1.0))
+            p_proj = pa + t * v
+            dist_sq = float(np.dot(p - p_proj, p - p_proj))
+
+            if dist_sq < best_dist_sq:
+                best_dist_sq = dist_sq
+                best_seg_a = ia
+                best_seg_b = ib
+                best_t = t
+                if ia == self.num_waypoints - 1:
+                    seg_len = self.track_length - self.s_arr[ia]
+                else:
+                    seg_len = self.s_arr[ib] - self.s_arr[ia]
+                best_s_cont = (self.s_arr[ia] + t * seg_len) % self.track_length
+
+        s_cont = best_s_cont
+
+        # Diagnostics and assertions for projection integrity
+        assert np.isfinite(s_cont), f"s_cont is not finite: {s_cont}"
+        assert 0.0 <= s_cont < self.track_length, f"s_cont={s_cont} outside [0, {self.track_length})"
+        assert 0.0 <= best_t <= 1.0, f"Projection parameter t={best_t} outside [0, 1]"
+
+        # Track and log progress between cycles, flagging anomalous backward motion without hard failure
+        if hasattr(self, '_last_s_cont') and self._last_s_cont is not None and not pos_jump:
+            ds_progress = s_cont - self._last_s_cont
+            if ds_progress < -self.track_length / 2.0:
+                ds_progress += self.track_length
+            elif ds_progress > self.track_length / 2.0:
+                ds_progress -= self.track_length
+            if ds_progress < -0.20:
+                self.get_logger().warn(
+                    f"Anomalous backward s_cont motion: ds={ds_progress:.4f}m (from {self._last_s_cont:.4f} to {s_cont:.4f})"
+                )
+        self._last_s_cont = s_cont
+
+        # Build N+1 horizon references anchored at continuous s_cont
         ref_horizon = np.zeros((self.N + 1, 4))
-        cur_s = self.s_arr[closest_idx]
+        cur_s = s_cont
         speed_est = max(1.5, cur_v)
+        s_targets = np.zeros(self.N + 1)
 
         for k in range(self.N + 1):
             s_target = (cur_s + k * speed_est * self.dt) % self.track_length
+            s_targets[k] = s_target
 
             # Find segment [idx_a, idx_b] containing s_target
             idx_a = int(np.searchsorted(self.s_arr, s_target, side='right') - 1)
@@ -357,6 +525,13 @@ class MPCControllerNode(Node):
             # Continuous linear interpolation of target speed
             ref_horizon[k, 3] = (1.0 - t) * self.scaled_target_speeds[idx_a] + t * self.scaled_target_speeds[idx_b]
 
+        # Verify reference horizon integrity
+        assert abs(s_targets[0] - s_cont) < 1e-9, f"s_ref[0] mismatch: {s_targets[0]} vs {s_cont}"
+        for k in range(self.N):
+            ds_k = (s_targets[k + 1] - s_targets[k] + self.track_length) % self.track_length
+            assert ds_k > 0.0, f"Reference horizon arc-length non-monotonic at step {k}: ds={ds_k}"
+        assert np.all(np.isfinite(ref_horizon)), "ref_horizon contains NaN or Inf"
+
         return ref_horizon, closest_idx
 
     def scan_callback(self, scan_msg: LaserScan):
@@ -371,6 +546,8 @@ class MPCControllerNode(Node):
             self.get_logger().info(
                 f"Connected to simulator on '{self.odom_topic}'! MPC controller is now actively driving."
             )
+
+        t_entry = time.perf_counter()
 
         # Determine actual dt between consecutive callbacks for accurate slew limiting
         now_sec = float(odom_msg.header.stamp.sec) + float(odom_msg.header.stamp.nanosec) * 1e-9
@@ -390,7 +567,12 @@ class MPCControllerNode(Node):
             1.0 - 2.0 * (q.y * q.y + q.z * q.z)
         )
         cur_v = math.hypot(odom_msg.twist.twist.linear.x, odom_msg.twist.twist.linear.y)
-        current_state = np.array([cur_x, cur_y, cur_yaw, cur_v])
+        cur_r = float(odom_msg.twist.twist.angular.z)
+
+        if self.optimizer.nx == 5:
+            current_state = np.array([cur_x, cur_y, cur_yaw, cur_v, cur_r])
+        else:
+            current_state = np.array([cur_x, cur_y, cur_yaw, cur_v])
 
         # 2. Extract reference horizon
         ref_horizon, closest_idx = self._extract_reference_horizon(cur_x, cur_y, cur_yaw, cur_v)
@@ -478,27 +660,57 @@ class MPCControllerNode(Node):
             target_v = float(np.clip(v_target, max(0.0, v_cmd_min), min(self.max_straight_speed, v_cmd_max)))
             self._last_speed_cmd = target_v
 
-        # Hardware-realistic steering slew-rate limiter [rad/s] based on actual dt
-        max_steer_rate = float(self.optimizer.cfg.max_steer_rate)  # 2.0 rad/s
-        max_dsteer = max_steer_rate * dt_actual
-        steer_cmd = float(np.clip(steer_cmd, self._last_steer_cmd - max_dsteer, self._last_steer_cmd + max_dsteer))
+        opt_raw_steer = steer_cmd
 
-        # Micro-deadband filter: suppress sub-threshold servo flutter on straights
-        if abs(steer_cmd - self._last_steer_cmd) < self.steer_deadband_rad:
-            steer_cmd = self._last_steer_cmd
+        # ----------------------------------------------------------------------
+        # STEERING COMMAND TRANSFORMATION (Experiment 25B Sections 4, 5, 7)
+        # ----------------------------------------------------------------------
+        t_policy = time.perf_counter()
+
+        if self.steering_policy_name == 'RAW':
+            # Existing production fallback path: 2.0 rad/s limiter + 3.5 mrad deadband
+            max_steer_rate = float(self.optimizer.cfg.max_steer_rate)  # 2.0 rad/s
+            max_dsteer = max_steer_rate * dt_actual
+            steer_slew_limited = float(np.clip(opt_raw_steer, self._last_steer_cmd - max_dsteer, self._last_steer_cmd + max_dsteer))
+
+            if abs(steer_slew_limited - self._last_steer_cmd) < self.steer_deadband_rad:
+                steer_final = self._last_steer_cmd
+            else:
+                steer_final = steer_slew_limited
+                self._last_steer_cmd = steer_final
+
+            policy_steer = opt_raw_steer
+            final_cmd = steer_final
         else:
-            self._last_steer_cmd = steer_cmd
+            # Terminal steering-command transformation: replaces limiter and deadband.
+            # Downstream clipping or deadbanding is strictly prohibited to prevent destroying the lattice.
+            policy_steer = self.steering_policy_filter.step(opt_raw_steer)
+            self._last_steer_cmd = policy_steer
+            final_cmd = policy_steer
 
-        # Direct commanded steering without EMA phase lag
-        self._filtered_steer = steer_cmd
+        self._filtered_steer = final_cmd
+
+        # Retain separate telemetry signals
+        self._last_opt_raw_steer = opt_raw_steer
+        self._last_policy_steer = policy_steer
+        self._last_published_steer = final_cmd
 
         # 4. Publish drive command
+        t_pub = time.perf_counter()
         drive_msg = AckermannDriveStamped()
         drive_msg.header.stamp = self.get_clock().now().to_msg()
         drive_msg.header.frame_id = 'base_link'
         drive_msg.drive.speed = target_v
         drive_msg.drive.steering_angle = float(self._filtered_steer)
         self.drive_pub.publish(drive_msg)
+
+        self._last_published_drive_msg = drive_msg
+        self._last_timing_audit = {
+            't_entry': t_entry,
+            't_policy': t_policy,
+            't_pub': t_pub,
+            't_sim': now_sec
+        }
 
         # 5. Visualizations
         if self.visualize:

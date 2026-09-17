@@ -1,0 +1,8 @@
+Track,Policy,Verdict,Max_Cmd_Diff_Rad,Cmd_Pass,Chatter_Reversals,Chatter_Pass,Prod_Lat_RMSE_cm,E24_Lat_RMSE_cm,Lat_Diff_cm,Lat_Pass,Prod_Rate_RMS_rad_s,E24_Rate_RMS_rad_s,Rate_Diff_rad_s,Rate_Pass,Prod_Cmd_RMS_deg,E24_Cmd_RMS_deg,Cmd_RMS_Diff_deg,Cmd_RMS_Pass,Collisions,OOB,Laps,Safety_Pass,Mean_CB_Period_ms,Period_Jitter_ms,Mean_CB_Duration_us,Mean_Policy_Duration_us
+Spielberg,HOLD_LATTICE16,PASS,2.78e-17,True,0,True,3.8647,3.8647,0.0000,True,0.7038,0.7038,0.0000,True,2.3627,2.3627,0.0000,True,0,0,3,True,40.00,0.0000,2189.6,8.9
+Austin,HOLD_LATTICE16,PASS,2.78e-17,True,0,True,3.8926,3.8925,0.0000,True,0.7510,0.7510,0.0000,True,3.4381,3.4381,0.0000,True,0,0,3,True,40.00,0.0000,2988.4,14.2
+Monza,HOLD_LATTICE16,PASS,2.78e-17,True,0,True,3.4631,3.4630,0.0001,True,0.7109,0.7109,0.0000,True,1.8152,1.8152,0.0000,True,0,0,3,True,40.00,0.0000,3214.2,15.5
+BrandsHatch,HOLD_LATTICE16,PASS,2.78e-17,True,0,True,4.1749,4.1749,0.0000,True,0.7640,0.7640,0.0000,True,2.1440,2.1440,0.0000,True,0,0,3,True,40.00,0.0000,2690.2,12.3
+Silverstone,HOLD_LATTICE16,PASS,2.78e-17,True,0,True,3.5981,3.5978,0.0003,True,0.7476,0.7476,0.0000,True,2.7292,2.7292,0.0000,True,0,0,3,True,40.00,0.0000,2297.3,10.3
+Catalunya,HOLD_LATTICE16,PASS,2.78e-17,True,0,True,3.9619,3.9619,0.0000,True,0.7498,0.7498,0.0000,True,2.4950,2.4950,0.0000,True,0,0,3,True,40.00,0.0000,1974.4,8.4
+Spa,HOLD_LATTICE16,PASS,2.78e-17,True,0,True,3.6583,3.6583,0.0000,True,0.7319,0.7319,0.0000,True,2.5985,2.5985,0.0000,True,0,0,3,True,40.00,0.0000,2234.8,9.7
