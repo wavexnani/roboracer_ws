@@ -1,0 +1,982 @@
+{
+  "tracks": [
+    "Spielberg",
+    "Austin",
+    "Monza"
+  ],
+  "policies": [
+    "RAW",
+    "HOLD_16",
+    "HOLD_LATTICE_16"
+  ],
+  "runs": {
+    "Spielberg": {
+      "RAW": {
+        "track": "Spielberg",
+        "policy": "RAW",
+        "tracking": {
+          "lat_rmse_25hz_cm": 3.0298139033178475,
+          "lat_rmse_100hz_cm": 3.026082429147375,
+          "max_lat_err_25hz_cm": 12.962014548519685,
+          "max_lat_err_100hz_cm": 12.696485196874507,
+          "head_rmse_25hz_deg": 0.9489340779384131,
+          "head_rmse_100hz_deg": 4.298573786120327,
+          "progress_m": 147.35131683673123,
+          "track_length_m": 339.09415679498875,
+          "progress_pct": 43.45439574348597,
+          "lap_completed": false
+        },
+        "command": {
+          "cmd_rms_deg": 2.2974187110887274,
+          "cmd_inc_rms_mrad": 5.983262796852835,
+          "cmd_inc_max_mrad": 25.353059481413776,
+          "cmd_min_deg": -9.175310444135357,
+          "cmd_max_deg": 2.1322529303305457,
+          "frac_held": 0.0,
+          "frac_lattice": 0.0,
+          "frac_non_lattice": 1.0
+        },
+        "actuator": {
+          "steering_rms_deg": 2.553483288475699,
+          "rate_rms_rad_s": 3.173428139070767,
+          "rate_max_rad_s": 3.2,
+          "phase_err_rms_mrad": 16.30374710665645,
+          "phase_err_mean_abs_mrad": 12.535599297077592,
+          "phase_err_p95_mrad": 30.077768960476917,
+          "phase_err_p99_mrad": 31.60540883545821,
+          "phase_err_max_mrad": 31.896005578587385,
+          "samples_gt_1e9": 649,
+          "samples_gt_1e6": 649,
+          "total_phase_samples": 649
+        },
+        "chatter": {
+          "target_crossings": 2346,
+          "relay_sign_reversals": 2346,
+          "plus_minus_pairs": 1173,
+          "minus_plus_pairs": 1173,
+          "persistent_cycles_ge4": 211,
+          "longest_alternating_streak": 77,
+          "total_alternating_steps": 2346,
+          "nonzero_relay_steps": 2558
+        },
+        "frequency": {
+          "df_hz": 0.1111111111111111,
+          "dc_component_rad_s": -0.1460800139190211,
+          "energy_2_4_rad_s": 0.07860450937249833,
+          "energy_4_8_rad_s": 0.09916249824315085,
+          "energy_5_7_rad_s": 0.05295434852709721,
+          "dom_gt2_freq_hz": 4.555555555555555,
+          "dom_5_7_freq_hz": 5.444444444444444
+        },
+        "safety": {
+          "collisions": 0,
+          "min_lidar_m": 0.312386353209861,
+          "safety_violations": 0
+        },
+        "compute": {
+          "mean_solve_ms": 2.708063082760558,
+          "p95_solve_ms": 3.628471396223176,
+          "mean_policy_us": 0.5600722775293084,
+          "p95_policy_us": 1.367255026707425
+        }
+      },
+      "HOLD_16": {
+        "track": "Spielberg",
+        "policy": "HOLD_16",
+        "tracking": {
+          "lat_rmse_25hz_cm": 3.5922440219523932,
+          "lat_rmse_100hz_cm": 3.5993315803239425,
+          "max_lat_err_25hz_cm": 13.05288480505045,
+          "max_lat_err_100hz_cm": 12.751530759546464,
+          "head_rmse_25hz_deg": 0.9600851621106814,
+          "head_rmse_100hz_deg": 4.293776972248497,
+          "progress_m": 147.32758531094,
+          "track_length_m": 339.09415679498875,
+          "progress_pct": 43.44739723722578,
+          "lap_completed": false
+        },
+        "command": {
+          "cmd_rms_deg": 2.3027245734686885,
+          "cmd_inc_rms_mrad": 7.3132633375117315,
+          "cmd_inc_max_mrad": 29.121216953299736,
+          "cmd_min_deg": -9.16732472209317,
+          "cmd_max_deg": 2.1870681357835777,
+          "frac_held": 0.6307692307692307,
+          "frac_lattice": 0.6307692307692307,
+          "frac_non_lattice": 0.36923076923076925
+        },
+        "actuator": {
+          "steering_rms_deg": 2.353028382463465,
+          "rate_rms_rad_s": 1.9383736243800644,
+          "rate_max_rad_s": 3.2,
+          "phase_err_rms_mrad": 14.775109340329756,
+          "phase_err_mean_abs_mrad": 8.77599637840187,
+          "phase_err_p95_mrad": 29.583192902399023,
+          "phase_err_p99_mrad": 31.237167076109678,
+          "phase_err_max_mrad": 31.731364846366393,
+          "samples_gt_1e9": 240,
+          "samples_gt_1e6": 240,
+          "total_phase_samples": 649
+        },
+        "chatter": {
+          "target_crossings": 869,
+          "relay_sign_reversals": 869,
+          "plus_minus_pairs": 435,
+          "minus_plus_pairs": 434,
+          "persistent_cycles_ge4": 79,
+          "longest_alternating_streak": 56,
+          "total_alternating_steps": 869,
+          "nonzero_relay_steps": 954
+        },
+        "frequency": {
+          "df_hz": 0.1111111111111111,
+          "dc_component_rad_s": -0.14668945491942034,
+          "energy_2_4_rad_s": 0.04793331291569108,
+          "energy_4_8_rad_s": 0.038899435139446714,
+          "energy_5_7_rad_s": 0.03189481733160625,
+          "dom_gt2_freq_hz": 2.888888888888889,
+          "dom_5_7_freq_hz": 5.111111111111111
+        },
+        "safety": {
+          "collisions": 0,
+          "min_lidar_m": 0.312386353209861,
+          "safety_violations": 0
+        },
+        "compute": {
+          "mean_solve_ms": 2.7804663797276308,
+          "p95_solve_ms": 3.605084402806824,
+          "mean_policy_us": 1.5582292689941823,
+          "p95_policy_us": 3.4721961128525427
+        }
+      },
+      "HOLD_LATTICE_16": {
+        "track": "Spielberg",
+        "policy": "HOLD_LATTICE_16",
+        "tracking": {
+          "lat_rmse_25hz_cm": 3.3524240010389894,
+          "lat_rmse_100hz_cm": 3.3579931396637854,
+          "max_lat_err_25hz_cm": 11.568872383524505,
+          "max_lat_err_100hz_cm": 11.383554266382479,
+          "head_rmse_25hz_deg": 0.9477658232140499,
+          "head_rmse_100hz_deg": 4.301667717953795,
+          "progress_m": 147.36002847709324,
+          "track_length_m": 339.09415679498875,
+          "progress_pct": 43.45696483534068,
+          "lap_completed": false
+        },
+        "command": {
+          "cmd_rms_deg": 2.3012611763886586,
+          "cmd_inc_rms_mrad": 12.048182672132697,
+          "cmd_inc_max_mrad": 32.00000000000003,
+          "cmd_min_deg": -9.167324722093172,
+          "cmd_max_deg": 1.8334649444186348,
+          "frac_held": 0.8584615384615385,
+          "frac_lattice": 1.0,
+          "frac_non_lattice": 0.0
+        },
+        "actuator": {
+          "steering_rms_deg": 2.3008187537802463,
+          "rate_rms_rad_s": 0.6019455636006145,
+          "rate_max_rad_s": 3.2,
+          "phase_err_rms_mrad": 6.890613421786109e-15,
+          "phase_err_mean_abs_mrad": 2.3094007445977834e-15,
+          "phase_err_p95_mrad": 2.0816681711721685e-14,
+          "phase_err_p99_mrad": 2.7755575615628914e-14,
+          "phase_err_max_mrad": 2.7755575615628914e-14,
+          "samples_gt_1e9": 0,
+          "samples_gt_1e6": 0,
+          "total_phase_samples": 649
+        },
+        "chatter": {
+          "target_crossings": 0,
+          "relay_sign_reversals": 0,
+          "plus_minus_pairs": 0,
+          "minus_plus_pairs": 0,
+          "persistent_cycles_ge4": 0,
+          "longest_alternating_streak": 0,
+          "total_alternating_steps": 0,
+          "nonzero_relay_steps": 92
+        },
+        "frequency": {
+          "df_hz": 0.1111111111111111,
+          "dc_component_rad_s": -0.14855722728332763,
+          "energy_2_4_rad_s": 0.049626263046891855,
+          "energy_4_8_rad_s": 0.042290392876182754,
+          "energy_5_7_rad_s": 0.024919875511938885,
+          "dom_gt2_freq_hz": 4.222222222222222,
+          "dom_5_7_freq_hz": 5.111111111111111
+        },
+        "safety": {
+          "collisions": 0,
+          "min_lidar_m": 0.312386353209861,
+          "safety_violations": 0
+        },
+        "compute": {
+          "mean_solve_ms": 1.4590312663214997,
+          "p95_solve_ms": 1.5951548040902706,
+          "mean_policy_us": 0.6868922411320875,
+          "p95_policy_us": 1.5051955415401606
+        }
+      }
+    },
+    "Austin": {
+      "RAW": {
+        "track": "Austin",
+        "policy": "RAW",
+        "tracking": {
+          "lat_rmse_25hz_cm": 3.2688279351997336,
+          "lat_rmse_100hz_cm": 3.2392396133564696,
+          "max_lat_err_25hz_cm": 10.972303691337723,
+          "max_lat_err_100hz_cm": 10.773587941167577,
+          "head_rmse_25hz_deg": 1.1694527515861621,
+          "head_rmse_100hz_deg": 5.90955097390871,
+          "progress_m": 120.54898880532923,
+          "track_length_m": 410.6215876369988,
+          "progress_pct": 29.357684163429315,
+          "lap_completed": false
+        },
+        "command": {
+          "cmd_rms_deg": 2.801821717836048,
+          "cmd_inc_rms_mrad": 6.2629721783030465,
+          "cmd_inc_max_mrad": 23.879454436074443,
+          "cmd_min_deg": -4.270165679072946,
+          "cmd_max_deg": 11.145341879372088,
+          "frac_held": 0.0,
+          "frac_lattice": 0.0015384615384615385,
+          "frac_non_lattice": 0.9984615384615385
+        },
+        "actuator": {
+          "steering_rms_deg": 3.0170414639110974,
+          "rate_rms_rad_s": 3.179627457616814,
+          "rate_max_rad_s": 3.2,
+          "phase_err_rms_mrad": 15.70675012771424,
+          "phase_err_mean_abs_mrad": 12.01262954212604,
+          "phase_err_p95_mrad": 30.493607284427192,
+          "phase_err_p99_mrad": 31.464049383104264,
+          "phase_err_max_mrad": 31.83454986502564,
+          "samples_gt_1e9": 649,
+          "samples_gt_1e6": 649,
+          "total_phase_samples": 649
+        },
+        "chatter": {
+          "target_crossings": 2368,
+          "relay_sign_reversals": 2368,
+          "plus_minus_pairs": 1184,
+          "minus_plus_pairs": 1184,
+          "persistent_cycles_ge4": 200,
+          "longest_alternating_streak": 59,
+          "total_alternating_steps": 2368,
+          "nonzero_relay_steps": 2568
+        },
+        "frequency": {
+          "df_hz": 0.1111111111111111,
+          "dc_component_rad_s": 0.10260155088264758,
+          "energy_2_4_rad_s": 0.09284608710656034,
+          "energy_4_8_rad_s": 0.08763909301344655,
+          "energy_5_7_rad_s": 0.05144911267550729,
+          "dom_gt2_freq_hz": 4.0,
+          "dom_5_7_freq_hz": 6.333333333333333
+        },
+        "safety": {
+          "collisions": 0,
+          "min_lidar_m": 0.29879908191215065,
+          "safety_violations": 0
+        },
+        "compute": {
+          "mean_solve_ms": 1.4573129757459706,
+          "p95_solve_ms": 1.6118084975460076,
+          "mean_policy_us": 0.2099233097396791,
+          "p95_policy_us": 0.27865098672918964
+        }
+      },
+      "HOLD_16": {
+        "track": "Austin",
+        "policy": "HOLD_16",
+        "tracking": {
+          "lat_rmse_25hz_cm": 3.3678178141748867,
+          "lat_rmse_100hz_cm": 3.3070241973314083,
+          "max_lat_err_25hz_cm": 11.273289148624123,
+          "max_lat_err_100hz_cm": 11.198474431478754,
+          "head_rmse_25hz_deg": 1.247031807080293,
+          "head_rmse_100hz_deg": 5.9197526456232525,
+          "progress_m": 120.61061496692463,
+          "track_length_m": 410.6215876369988,
+          "progress_pct": 29.372692181383275,
+          "lap_completed": false
+        },
+        "command": {
+          "cmd_rms_deg": 2.754613308722427,
+          "cmd_inc_rms_mrad": 8.92273033813549,
+          "cmd_inc_max_mrad": 30.294319217395227,
+          "cmd_min_deg": -4.604513712677689,
+          "cmd_max_deg": 11.000789666511805,
+          "frac_held": 0.58,
+          "frac_lattice": 0.58,
+          "frac_non_lattice": 0.42000000000000004
+        },
+        "actuator": {
+          "steering_rms_deg": 2.869274844480036,
+          "rate_rms_rad_s": 2.0738370234905146,
+          "rate_max_rad_s": 3.2,
+          "phase_err_rms_mrad": 15.506681458653901,
+          "phase_err_mean_abs_mrad": 9.82990383342736,
+          "phase_err_p95_mrad": 30.218896601454794,
+          "phase_err_p99_mrad": 31.38963813805793,
+          "phase_err_max_mrad": 31.891472025454505,
+          "samples_gt_1e9": 273,
+          "samples_gt_1e6": 273,
+          "total_phase_samples": 649
+        },
+        "chatter": {
+          "target_crossings": 981,
+          "relay_sign_reversals": 981,
+          "plus_minus_pairs": 494,
+          "minus_plus_pairs": 487,
+          "persistent_cycles_ge4": 101,
+          "longest_alternating_streak": 41,
+          "total_alternating_steps": 981,
+          "nonzero_relay_steps": 1092
+        },
+        "frequency": {
+          "df_hz": 0.1111111111111111,
+          "dc_component_rad_s": 0.10414315242739883,
+          "energy_2_4_rad_s": 0.03735934046406215,
+          "energy_4_8_rad_s": 0.03395012093189119,
+          "energy_5_7_rad_s": 0.02727294160714554,
+          "dom_gt2_freq_hz": 2.444444444444444,
+          "dom_5_7_freq_hz": 5.888888888888888
+        },
+        "safety": {
+          "collisions": 0,
+          "min_lidar_m": 0.29879908191215065,
+          "safety_violations": 0
+        },
+        "compute": {
+          "mean_solve_ms": 1.4638549695910814,
+          "p95_solve_ms": 1.6051127480750438,
+          "mean_policy_us": 0.44774917814020926,
+          "p95_policy_us": 0.5869951564818621
+        }
+      },
+      "HOLD_LATTICE_16": {
+        "track": "Austin",
+        "policy": "HOLD_LATTICE_16",
+        "tracking": {
+          "lat_rmse_25hz_cm": 3.3318646203791062,
+          "lat_rmse_100hz_cm": 3.2681244333551844,
+          "max_lat_err_25hz_cm": 10.124228172886461,
+          "max_lat_err_100hz_cm": 10.012921631846394,
+          "head_rmse_25hz_deg": 1.1946029784265528,
+          "head_rmse_100hz_deg": 5.880250500222139,
+          "progress_m": 120.58269969876382,
+          "track_length_m": 410.6215876369988,
+          "progress_pct": 29.36589388606679,
+          "lap_completed": false
+        },
+        "command": {
+          "cmd_rms_deg": 2.845848727796935,
+          "cmd_inc_rms_mrad": 14.540523046907834,
+          "cmd_inc_max_mrad": 32.00000000000003,
+          "cmd_min_deg": -3.666929888837269,
+          "cmd_max_deg": 11.000789666511807,
+          "frac_held": 0.7938461538461539,
+          "frac_lattice": 1.0,
+          "frac_non_lattice": 0.0
+        },
+        "actuator": {
+          "steering_rms_deg": 2.8453016070136807,
+          "rate_rms_rad_s": 0.7264666861968592,
+          "rate_max_rad_s": 3.2,
+          "phase_err_rms_mrad": 5.9984462004133254e-15,
+          "phase_err_mean_abs_mrad": 2.063492331978575e-15,
+          "phase_err_p95_mrad": 1.3877787807814457e-14,
+          "phase_err_p99_mrad": 2.7755575615628914e-14,
+          "phase_err_max_mrad": 2.7755575615628914e-14,
+          "samples_gt_1e9": 0,
+          "samples_gt_1e6": 0,
+          "total_phase_samples": 649
+        },
+        "chatter": {
+          "target_crossings": 0,
+          "relay_sign_reversals": 0,
+          "plus_minus_pairs": 0,
+          "minus_plus_pairs": 0,
+          "persistent_cycles_ge4": 0,
+          "longest_alternating_streak": 0,
+          "total_alternating_steps": 0,
+          "nonzero_relay_steps": 134
+        },
+        "frequency": {
+          "df_hz": 0.1111111111111111,
+          "dc_component_rad_s": 0.10347124118020135,
+          "energy_2_4_rad_s": 0.06578237519775465,
+          "energy_4_8_rad_s": 0.04965873717714214,
+          "energy_5_7_rad_s": 0.03652003592080395,
+          "dom_gt2_freq_hz": 2.6666666666666665,
+          "dom_5_7_freq_hz": 6.0
+        },
+        "safety": {
+          "collisions": 0,
+          "min_lidar_m": 0.29879908191215065,
+          "safety_violations": 0
+        },
+        "compute": {
+          "mean_solve_ms": 1.4591760784298038,
+          "p95_solve_ms": 1.6348951547115576,
+          "mean_policy_us": 0.741220003244682,
+          "p95_policy_us": 1.6180987586267292
+        }
+      }
+    },
+    "Monza": {
+      "RAW": {
+        "track": "Monza",
+        "policy": "RAW",
+        "tracking": {
+          "lat_rmse_25hz_cm": 3.1631674035286896,
+          "lat_rmse_100hz_cm": 3.1234085294103826,
+          "max_lat_err_25hz_cm": 11.050774944177002,
+          "max_lat_err_100hz_cm": 10.418628109589372,
+          "head_rmse_25hz_deg": 1.1481968820783806,
+          "head_rmse_100hz_deg": 5.548686478857849,
+          "progress_m": 160.63375549507924,
+          "track_length_m": 441.4911628921675,
+          "progress_pct": 36.38436485178604,
+          "lap_completed": false
+        },
+        "command": {
+          "cmd_rms_deg": 1.6874331882078908,
+          "cmd_inc_rms_mrad": 7.056802995970547,
+          "cmd_inc_max_mrad": 29.890165880765075,
+          "cmd_min_deg": -5.61902985501702,
+          "cmd_max_deg": 10.235702925984764,
+          "frac_held": 0.0,
+          "frac_lattice": 0.0,
+          "frac_non_lattice": 1.0
+        },
+        "actuator": {
+          "steering_rms_deg": 2.0447469880213203,
+          "rate_rms_rad_s": 3.1858147128506045,
+          "rate_max_rad_s": 3.2,
+          "phase_err_rms_mrad": 12.50178943226084,
+          "phase_err_mean_abs_mrad": 8.96487381909858,
+          "phase_err_p95_mrad": 28.145667007346148,
+          "phase_err_p99_mrad": 31.16784477652024,
+          "phase_err_max_mrad": 31.82998344272859,
+          "samples_gt_1e9": 649,
+          "samples_gt_1e6": 649,
+          "total_phase_samples": 649
+        },
+        "chatter": {
+          "target_crossings": 2334,
+          "relay_sign_reversals": 2334,
+          "plus_minus_pairs": 1167,
+          "minus_plus_pairs": 1167,
+          "persistent_cycles_ge4": 243,
+          "longest_alternating_streak": 88,
+          "total_alternating_steps": 2334,
+          "nonzero_relay_steps": 2578
+        },
+        "frequency": {
+          "df_hz": 0.1111111111111111,
+          "dc_component_rad_s": 0.0019863574417159167,
+          "energy_2_4_rad_s": 0.06762033916017407,
+          "energy_4_8_rad_s": 0.11101580379332401,
+          "energy_5_7_rad_s": 0.08568245608384696,
+          "dom_gt2_freq_hz": 5.0,
+          "dom_5_7_freq_hz": 5.0
+        },
+        "safety": {
+          "collisions": 0,
+          "min_lidar_m": 0.3102499486765583,
+          "safety_violations": 0
+        },
+        "compute": {
+          "mean_solve_ms": 1.7488485090479327,
+          "p95_solve_ms": 2.973322800244203,
+          "mean_policy_us": 0.35003987320054036,
+          "p95_policy_us": 0.7867442036513237
+        }
+      },
+      "HOLD_16": {
+        "track": "Monza",
+        "policy": "HOLD_16",
+        "tracking": {
+          "lat_rmse_25hz_cm": 3.580421306296338,
+          "lat_rmse_100hz_cm": 3.563254369025184,
+          "max_lat_err_25hz_cm": 9.803517892550348,
+          "max_lat_err_100hz_cm": 9.720650421228024,
+          "head_rmse_25hz_deg": 1.1598877566250194,
+          "head_rmse_100hz_deg": 5.547185226206263,
+          "progress_m": 160.62546285756966,
+          "track_length_m": 441.4911628921675,
+          "progress_pct": 36.38248652709767,
+          "lap_completed": false
+        },
+        "command": {
+          "cmd_rms_deg": 1.6871625908230248,
+          "cmd_inc_rms_mrad": 8.11805695054348,
+          "cmd_inc_max_mrad": 42.766884970859316,
+          "cmd_min_deg": -5.686395413973603,
+          "cmd_max_deg": 11.000789666511807,
+          "frac_held": 0.5246153846153846,
+          "frac_lattice": 0.5246153846153846,
+          "frac_non_lattice": 0.4753846153846154
+        },
+        "actuator": {
+          "steering_rms_deg": 1.8464596866590675,
+          "rate_rms_rad_s": 2.2009788032390705,
+          "rate_max_rad_s": 3.2,
+          "phase_err_rms_mrad": 17.07730915043985,
+          "phase_err_mean_abs_mrad": 11.521828316321944,
+          "phase_err_p95_mrad": 30.45488975916073,
+          "phase_err_p99_mrad": 31.7266506983356,
+          "phase_err_max_mrad": 31.888557884157905,
+          "samples_gt_1e9": 308,
+          "samples_gt_1e6": 308,
+          "total_phase_samples": 649
+        },
+        "chatter": {
+          "target_crossings": 1115,
+          "relay_sign_reversals": 1115,
+          "plus_minus_pairs": 552,
+          "minus_plus_pairs": 563,
+          "persistent_cycles_ge4": 99,
+          "longest_alternating_streak": 76,
+          "total_alternating_steps": 1115,
+          "nonzero_relay_steps": 1230
+        },
+        "frequency": {
+          "df_hz": 0.1111111111111111,
+          "dc_component_rad_s": 0.0010447708837002026,
+          "energy_2_4_rad_s": 0.010823373478632093,
+          "energy_4_8_rad_s": 0.008241803839504541,
+          "energy_5_7_rad_s": 0.00547664997393425,
+          "dom_gt2_freq_hz": 2.0,
+          "dom_5_7_freq_hz": 5.444444444444444
+        },
+        "safety": {
+          "collisions": 0,
+          "min_lidar_m": 0.3102499486765583,
+          "safety_violations": 0
+        },
+        "compute": {
+          "mean_solve_ms": 1.606955753881126,
+          "p95_solve_ms": 2.3851325473515317,
+          "mean_policy_us": 0.5252398057984045,
+          "p95_policy_us": 0.8737450116313964
+        }
+      },
+      "HOLD_LATTICE_16": {
+        "track": "Monza",
+        "policy": "HOLD_LATTICE_16",
+        "tracking": {
+          "lat_rmse_25hz_cm": 3.2751444814504747,
+          "lat_rmse_100hz_cm": 3.2396552953930464,
+          "max_lat_err_25hz_cm": 10.18541866583045,
+          "max_lat_err_100hz_cm": 9.684129924796991,
+          "head_rmse_25hz_deg": 1.1474453014428887,
+          "head_rmse_100hz_deg": 5.537082861230115,
+          "progress_m": 160.63489398695702,
+          "track_length_m": 441.4911628921675,
+          "progress_pct": 36.38462272600267,
+          "lap_completed": false
+        },
+        "command": {
+          "cmd_rms_deg": 1.7408635830500672,
+          "cmd_inc_rms_mrad": 14.09979837904564,
+          "cmd_inc_max_mrad": 32.00000000000002,
+          "cmd_min_deg": -5.500394833255903,
+          "cmd_max_deg": 9.167324722093172,
+          "frac_held": 0.8061538461538461,
+          "frac_lattice": 1.0,
+          "frac_non_lattice": 0.0
+        },
+        "actuator": {
+          "steering_rms_deg": 1.7405288981324205,
+          "rate_rms_rad_s": 0.704447410277129,
+          "rate_max_rad_s": 3.2,
+          "phase_err_rms_mrad": 6.599134034552001e-15,
+          "phase_err_mean_abs_mrad": 2.5553091572169917e-15,
+          "phase_err_p95_mrad": 2.0816681711721685e-14,
+          "phase_err_p99_mrad": 2.0816681711721685e-14,
+          "phase_err_max_mrad": 2.7755575615628914e-14,
+          "samples_gt_1e9": 0,
+          "samples_gt_1e6": 0,
+          "total_phase_samples": 649
+        },
+        "chatter": {
+          "target_crossings": 0,
+          "relay_sign_reversals": 0,
+          "plus_minus_pairs": 0,
+          "minus_plus_pairs": 0,
+          "persistent_cycles_ge4": 0,
+          "longest_alternating_streak": 0,
+          "total_alternating_steps": 0,
+          "nonzero_relay_steps": 126
+        },
+        "frequency": {
+          "df_hz": 0.1111111111111111,
+          "dc_component_rad_s": 0.0005957641206599644,
+          "energy_2_4_rad_s": 0.03270510237359993,
+          "energy_4_8_rad_s": 0.027320481615413048,
+          "energy_5_7_rad_s": 0.018236435442601905,
+          "dom_gt2_freq_hz": 2.333333333333333,
+          "dom_5_7_freq_hz": 5.777777777777778
+        },
+        "safety": {
+          "collisions": 0,
+          "min_lidar_m": 0.3102499486765583,
+          "safety_violations": 0
+        },
+        "compute": {
+          "mean_solve_ms": 2.367173023118924,
+          "p95_solve_ms": 4.7600098048860655,
+          "mean_policy_us": 1.5831522670431206,
+          "p95_policy_us": 4.589444870362049
+        }
+      }
+    }
+  },
+  "determinism": {
+    "Spielberg": {
+      "RAW": {
+        "x": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "y": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "yaw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "v": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "delta": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_pub": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_raw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        }
+      },
+      "HOLD_16": {
+        "x": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "y": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "yaw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "v": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "delta": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_pub": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_raw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        }
+      },
+      "HOLD_LATTICE_16": {
+        "x": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "y": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "yaw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "v": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "delta": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_pub": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_raw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        }
+      }
+    },
+    "Austin": {
+      "RAW": {
+        "x": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "y": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "yaw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "v": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "delta": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_pub": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_raw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        }
+      },
+      "HOLD_16": {
+        "x": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "y": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "yaw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "v": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "delta": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_pub": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_raw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        }
+      },
+      "HOLD_LATTICE_16": {
+        "x": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "y": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "yaw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "v": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "delta": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_pub": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_raw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        }
+      }
+    },
+    "Monza": {
+      "RAW": {
+        "x": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "y": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "yaw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "v": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "delta": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_pub": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_raw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        }
+      },
+      "HOLD_16": {
+        "x": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "y": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "yaw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "v": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "delta": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_pub": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_raw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        }
+      },
+      "HOLD_LATTICE_16": {
+        "x": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "y": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "yaw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "v": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "delta": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_pub": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        },
+        "u_raw": {
+          "max_diff": 0.0,
+          "rms_diff": 0.0,
+          "is_identical": true
+        }
+      }
+    }
+  }
+}

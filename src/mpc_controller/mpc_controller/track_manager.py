@@ -16,10 +16,17 @@ from dataclasses import dataclass
 from typing import Optional, Tuple, List
 
 try:
-    from scipy.ndimage import gaussian_filter1d
+    from scipy.ndimage import distance_transform_edt, gaussian_filter1d  # type: ignore
     HAS_GAUSSIAN_FILTER = True
 except ImportError:
     HAS_GAUSSIAN_FILTER = False
+
+    def gaussian_filter1d(input, *args, **kwargs):
+        return input
+
+    def distance_transform_edt(input, *args, **kwargs):
+        return input
+
 
 
 @dataclass
@@ -231,7 +238,6 @@ class TrackManager:
             if map_yaml and os.path.isfile(map_yaml) and map_png and os.path.isfile(map_png):
                 try:
                     from PIL import Image
-                    from scipy.ndimage import distance_transform_edt, gaussian_filter1d
 
                     with open(map_yaml, 'r') as f:
                         mcfg = yaml.safe_load(f)

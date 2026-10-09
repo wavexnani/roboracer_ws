@@ -11,7 +11,7 @@ Usage:
 
 import os
 import sys
-from launch import LaunchDescription
+from launch import Action, LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
@@ -53,7 +53,7 @@ def launch_setup(context, *args, **kwargs):
         }]
     )
 
-    actions = [stanley_node]
+    actions: list[Action] = [stanley_node]
 
     autofocus_str = context.launch_configurations.get('autofocus', 'true').strip()
 

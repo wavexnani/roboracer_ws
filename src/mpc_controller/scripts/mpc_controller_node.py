@@ -596,6 +596,7 @@ class MPCControllerNode(Node):
 
         # If vehicle spun out or facing backwards (> 55 degrees), apply recovery steering
         recovery_mode = abs(heading_err) > math.radians(55)
+        res: Optional[MPCResult] = None
 
         if recovery_mode:
             # Safe recovery pursuit: steer directly towards path tangent and limit speed
@@ -605,7 +606,7 @@ class MPCControllerNode(Node):
             self._last_speed_cmd = target_v
         else:
             # Solve MPC Optimization
-            res: MPCResult = self.optimizer.solve(
+            res = self.optimizer.solve(
                 current_state=current_state,
                 ref_trajectory=ref_horizon,
                 prev_control=self._last_control
@@ -717,7 +718,7 @@ class MPCControllerNode(Node):
             # Immediate target marker
             self._publish_target_marker(ref_horizon[1, 0], ref_horizon[1, 1])
             # Green predicted trajectory ribbon
-            if not recovery_mode and len(res.predicted_x) > 0:
+            if res is not None and len(res.predicted_x) > 0:
                 self._publish_horizon_marker(res.predicted_x, res.predicted_y)
 
     def _publish_path_marker(self):

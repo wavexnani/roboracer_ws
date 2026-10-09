@@ -1,0 +1,5 @@
+# Pyrefly Type Checker Configuration
+# Suppress type-stub warnings for third-party packages lacking PEP 561 stubs (e.g. scipy, PIL, yaml)
+
+[errors]
+untyped-import = "ignore"

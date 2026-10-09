@@ -79,7 +79,9 @@ class SteeringPolicyFilter:
         self._eps_relay = float(eps_relay_rad)
 
         # Buffer sizing based on nominal transport delay
+        # pyrefly: ignore [unnecessary-type-conversion]
         self._buffer_size = max(1, int(round(self._nominal_delay / self._dt_sim)))
+        # pyrefly: ignore [unnecessary-type-conversion]
         self._substeps_per_cycle = max(1, int(round(self._ctrl_period / self._dt_sim)))
 
         # State initialization

@@ -1,0 +1,1430 @@
+[
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Spielberg",
+    "policy": "RAW",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 183.52,
+    "total_distance_m": 1016.4441961802229,
+    "lap_times": [
+      62.120000000000005,
+      60.72,
+      60.68000000000001
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.4463708620865563,
+      "lat_mean_signed_cm": 0.8704325375598612,
+      "lat_median_signed_cm": 0.31913313031165763,
+      "lat_std_cm": 3.3346393083205172,
+      "lat_max_abs_cm": 12.696485196874507,
+      "head_rmse_100hz_deg": 3.5944826369467413,
+      "head_mean_signed_deg": -0.04034818054639209
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.2829912401856243,
+      "delta_pub_rms_mrad": 5.8903555232762725,
+      "delta_pub_max_mrad": 28.705355751806433,
+      "steer_rate_rms_rad_s": 3.1833919499313197,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 15.850683162604156,
+      "phase_err_40ms_mean_abs_mrad": 12.210562336936572,
+      "phase_err_40ms_p95_mrad": 30.097540404257497,
+      "phase_err_40ms_max_mrad": 31.896005578587385,
+      "phase_err_end_rms_mrad": 15.847971303880636,
+      "phase_err_end_mean_abs_mrad": 12.207685255031285,
+      "phase_err_end_p95_mrad": 30.097659734013924,
+      "phase_err_end_max_mrad": 31.896005578587385,
+      "phase_samples": 4588
+    },
+    "chatter": {
+      "target_crossings": 16754,
+      "relay_sign_reversals": 16754,
+      "plus_minus_pairs": 8377,
+      "minus_plus_pairs": 8377,
+      "persistent_cycles_ge4": 1408,
+      "longest_alternating_streak": 129,
+      "total_alternating_steps": 16754,
+      "nonzero_relay_steps": 18163
+    },
+    "command_mod": {
+      "frac_held": 0.0,
+      "frac_lattice": 0.0015253867945086074
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.312386353209861,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Spielberg",
+    "policy": "HOLD16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 183.56,
+    "total_distance_m": 1016.6635895396796,
+    "lap_times": [
+      62.160000000000004,
+      60.71999999999999,
+      60.68000000000001
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 4.0229205121089056,
+      "lat_mean_signed_cm": 0.9854573543324634,
+      "lat_median_signed_cm": 0.8988360306423658,
+      "lat_std_cm": 3.9003542466728125,
+      "lat_max_abs_cm": 12.751530759546464,
+      "head_rmse_100hz_deg": 3.60047049902594,
+      "head_mean_signed_deg": -0.04209216108336171
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.3412298433121457,
+      "delta_pub_rms_mrad": 8.385503327109035,
+      "delta_pub_max_mrad": 32.40070828056103,
+      "steer_rate_rms_rad_s": 2.276996105853288,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 17.414035700263263,
+      "phase_err_40ms_mean_abs_mrad": 12.148458044096,
+      "phase_err_40ms_p95_mrad": 30.221583821055198,
+      "phase_err_40ms_max_mrad": 31.88457062180964,
+      "phase_err_end_rms_mrad": 17.410415816199954,
+      "phase_err_end_mean_abs_mrad": 12.144634258301084,
+      "phase_err_end_p95_mrad": 30.221712979515544,
+      "phase_err_end_max_mrad": 31.88457062180964,
+      "phase_samples": 4589
+    },
+    "chatter": {
+      "target_crossings": 8469,
+      "relay_sign_reversals": 8469,
+      "plus_minus_pairs": 4233,
+      "minus_plus_pairs": 4236,
+      "persistent_cycles_ge4": 756,
+      "longest_alternating_streak": 121,
+      "total_alternating_steps": 8469,
+      "nonzero_relay_steps": 9295
+    },
+    "command_mod": {
+      "frac_held": 0.49193899782135075,
+      "frac_lattice": 0.492156862745098
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.31217340414563416,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Spielberg",
+    "policy": "HOLD_LATTICE16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 183.56,
+    "total_distance_m": 1016.7416206286957,
+    "lap_times": [
+      62.120000000000005,
+      60.72,
+      60.72
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.864684461543434,
+      "lat_mean_signed_cm": 0.8772132389458551,
+      "lat_median_signed_cm": 0.8709912860849902,
+      "lat_std_cm": 3.763812285530906,
+      "lat_max_abs_cm": 11.969761464636232,
+      "head_rmse_100hz_deg": 3.596434141729998,
+      "head_mean_signed_deg": -0.04431184946591171
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.36265734221631,
+      "delta_pub_rms_mrad": 14.076589059692646,
+      "delta_pub_max_mrad": 32.00000000000003,
+      "steer_rate_rms_rad_s": 0.7038294529846322,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 7.971208180459683e-15,
+      "phase_err_40ms_mean_abs_mrad": 3.1269628662628347e-15,
+      "phase_err_40ms_p95_mrad": 2.0816681711721685e-14,
+      "phase_err_40ms_max_mrad": 2.7755575615628914e-14,
+      "phase_err_end_rms_mrad": 7.972076834979831e-15,
+      "phase_err_end_mean_abs_mrad": 3.12764441876202e-15,
+      "phase_err_end_p95_mrad": 2.0816681711721685e-14,
+      "phase_err_end_max_mrad": 2.7755575615628914e-14,
+      "phase_samples": 4589
+    },
+    "chatter": {
+      "target_crossings": 0,
+      "relay_sign_reversals": 0,
+      "plus_minus_pairs": 0,
+      "minus_plus_pairs": 0,
+      "persistent_cycles_ge4": 0,
+      "longest_alternating_streak": 0,
+      "total_alternating_steps": 0,
+      "nonzero_relay_steps": 888
+    },
+    "command_mod": {
+      "frac_held": 0.8065359477124183,
+      "frac_lattice": 1.0
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.3117539152426192,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Austin",
+    "policy": "RAW",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 271.76,
+    "total_distance_m": 1229.3038730513522,
+    "lap_times": [
+      91.52,
+      90.12000000000002,
+      90.11999999999998
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.87005665304888,
+      "lat_mean_signed_cm": -0.6000299651225678,
+      "lat_median_signed_cm": 0.007110739536244633,
+      "lat_std_cm": 3.8232581051719365,
+      "lat_max_abs_cm": 12.83834100392452,
+      "head_rmse_100hz_deg": 5.126857503557731,
+      "head_mean_signed_deg": -0.20863954763089712
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 3.3976486133853596,
+      "delta_pub_rms_mrad": 6.454118805154142,
+      "delta_pub_max_mrad": 26.377416537168006,
+      "steer_rate_rms_rad_s": 3.1829395085705463,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 15.652284838326462,
+      "phase_err_40ms_mean_abs_mrad": 12.16406552257895,
+      "phase_err_40ms_p95_mrad": 30.104030628848367,
+      "phase_err_40ms_max_mrad": 31.89957490672906,
+      "phase_err_end_rms_mrad": 15.653368150126214,
+      "phase_err_end_mean_abs_mrad": 12.165293368396346,
+      "phase_err_end_p95_mrad": 30.105075861916838,
+      "phase_err_end_max_mrad": 31.89957490672906,
+      "phase_samples": 6794
+    },
+    "chatter": {
+      "target_crossings": 24894,
+      "relay_sign_reversals": 24894,
+      "plus_minus_pairs": 12449,
+      "minus_plus_pairs": 12445,
+      "persistent_cycles_ge4": 1987,
+      "longest_alternating_streak": 117,
+      "total_alternating_steps": 24894,
+      "nonzero_relay_steps": 26888
+    },
+    "command_mod": {
+      "frac_held": 0.0,
+      "frac_lattice": 0.0013245033112582781
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.2963111807014535,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Austin",
+    "policy": "HOLD16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 271.76,
+    "total_distance_m": 1229.2351231671264,
+    "lap_times": [
+      91.56,
+      90.08000000000001,
+      90.11999999999998
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 4.058247679970887,
+      "lat_mean_signed_cm": -0.3616269875537639,
+      "lat_median_signed_cm": 0.2768757353819097,
+      "lat_std_cm": 4.042103431860927,
+      "lat_max_abs_cm": 12.755635161998413,
+      "head_rmse_100hz_deg": 5.137554340190966,
+      "head_mean_signed_deg": -0.21584944139538925
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 3.405149681753471,
+      "delta_pub_rms_mrad": 8.78773277942207,
+      "delta_pub_max_mrad": 36.453489284729486,
+      "steer_rate_rms_rad_s": 2.2268202194311404,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 16.975595287623612,
+      "phase_err_40ms_mean_abs_mrad": 11.574252819432854,
+      "phase_err_40ms_p95_mrad": 30.337069567563372,
+      "phase_err_40ms_max_mrad": 31.89651061688819,
+      "phase_err_end_rms_mrad": 16.976844733419853,
+      "phase_err_end_mean_abs_mrad": 11.575956669398911,
+      "phase_err_end_p95_mrad": 30.33709457756015,
+      "phase_err_end_max_mrad": 31.89651061688819,
+      "phase_samples": 6794
+    },
+    "chatter": {
+      "target_crossings": 11968,
+      "relay_sign_reversals": 11968,
+      "plus_minus_pairs": 5946,
+      "minus_plus_pairs": 6022,
+      "persistent_cycles_ge4": 1074,
+      "longest_alternating_streak": 81,
+      "total_alternating_steps": 11968,
+      "nonzero_relay_steps": 13160
+    },
+    "command_mod": {
+      "frac_held": 0.5127299484915379,
+      "frac_lattice": 0.5131714495952907
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.2963111807014535,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Austin",
+    "policy": "HOLD_LATTICE16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 271.76,
+    "total_distance_m": 1229.2108633168777,
+    "lap_times": [
+      91.52,
+      90.12000000000002,
+      90.11999999999998
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.8925118287157177,
+      "lat_mean_signed_cm": -0.4700686117408944,
+      "lat_median_signed_cm": 0.17837166891228273,
+      "lat_std_cm": 3.8640243059468142,
+      "lat_max_abs_cm": 12.708395269351488,
+      "head_rmse_100hz_deg": 5.12736036880549,
+      "head_mean_signed_deg": -0.2193427218790277
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 3.4380581803924053,
+      "delta_pub_rms_mrad": 15.025990631758859,
+      "delta_pub_max_mrad": 32.00000000000003,
+      "steer_rate_rms_rad_s": 0.7510487221896709,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 8.149737412670768e-15,
+      "phase_err_40ms_mean_abs_mrad": 3.2008380180814324e-15,
+      "phase_err_40ms_p95_mrad": 2.324529457808543e-14,
+      "phase_err_40ms_max_mrad": 2.7755575615628914e-14,
+      "phase_err_end_rms_mrad": 8.146422899354157e-15,
+      "phase_err_end_mean_abs_mrad": 3.1982447833260025e-15,
+      "phase_err_end_p95_mrad": 2.3592239273282052e-14,
+      "phase_err_end_max_mrad": 2.7755575615628914e-14,
+      "phase_samples": 6794
+    },
+    "chatter": {
+      "target_crossings": 0,
+      "relay_sign_reversals": 0,
+      "plus_minus_pairs": 0,
+      "minus_plus_pairs": 0,
+      "persistent_cycles_ge4": 0,
+      "longest_alternating_streak": 0,
+      "total_alternating_steps": 0,
+      "nonzero_relay_steps": 1497
+    },
+    "command_mod": {
+      "frac_held": 0.7795437821927889,
+      "frac_lattice": 1.0
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.29879908191215065,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Monza",
+    "policy": "RAW",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 215.6,
+    "total_distance_m": 1321.3410344743274,
+    "lap_times": [
+      72.84,
+      71.36000000000001,
+      71.39999999999998
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.1353797448194074,
+      "lat_mean_signed_cm": 0.8031380976121669,
+      "lat_median_signed_cm": 0.23694348601380139,
+      "lat_std_cm": 3.0307714101178473,
+      "lat_max_abs_cm": 10.732974200710366,
+      "head_rmse_100hz_deg": 4.517504986544734,
+      "head_mean_signed_deg": -0.29948979686815663
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 1.7380242104615875,
+      "delta_pub_rms_mrad": 7.058117416472903,
+      "delta_pub_max_mrad": 29.890165880765075,
+      "steer_rate_rms_rad_s": 3.1872845701873493,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 14.6682830118498,
+      "phase_err_40ms_mean_abs_mrad": 11.080675540210883,
+      "phase_err_40ms_p95_mrad": 29.565270433614025,
+      "phase_err_40ms_max_mrad": 31.876598823691342,
+      "phase_err_end_rms_mrad": 14.669181146527025,
+      "phase_err_end_mean_abs_mrad": 11.08114447537345,
+      "phase_err_end_p95_mrad": 29.567170299790348,
+      "phase_err_end_max_mrad": 31.876598823691342,
+      "phase_samples": 5390
+    },
+    "chatter": {
+      "target_crossings": 19500,
+      "relay_sign_reversals": 19500,
+      "plus_minus_pairs": 9749,
+      "minus_plus_pairs": 9751,
+      "persistent_cycles_ge4": 1871,
+      "longest_alternating_streak": 104,
+      "total_alternating_steps": 19500,
+      "nonzero_relay_steps": 21390
+    },
+    "command_mod": {
+      "frac_held": 0.0,
+      "frac_lattice": 0.0005564830272676684
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.3102499486765583,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Monza",
+    "policy": "HOLD16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 215.6,
+    "total_distance_m": 1321.2976418131911,
+    "lap_times": [
+      72.84,
+      71.36000000000001,
+      71.39999999999998
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.627309939360721,
+      "lat_mean_signed_cm": 0.6393885281799189,
+      "lat_median_signed_cm": 0.4832641204526908,
+      "lat_std_cm": 3.570512527105457,
+      "lat_max_abs_cm": 11.342720255955658,
+      "head_rmse_100hz_deg": 4.53048699416889,
+      "head_mean_signed_deg": -0.28791923014505627
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 1.7529098689056173,
+      "delta_pub_rms_mrad": 8.793094634493208,
+      "delta_pub_max_mrad": 42.766884970859316,
+      "steer_rate_rms_rad_s": 2.1717019650174954,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 16.631148074563,
+      "phase_err_40ms_mean_abs_mrad": 11.062297566183759,
+      "phase_err_40ms_p95_mrad": 30.34415147539086,
+      "phase_err_40ms_max_mrad": 31.899405886104475,
+      "phase_err_end_rms_mrad": 16.632691067382996,
+      "phase_err_end_mean_abs_mrad": 11.064350321345417,
+      "phase_err_end_p95_mrad": 30.344836218565383,
+      "phase_err_end_max_mrad": 31.899405886104475,
+      "phase_samples": 5390
+    },
+    "chatter": {
+      "target_crossings": 8969,
+      "relay_sign_reversals": 8969,
+      "plus_minus_pairs": 4495,
+      "minus_plus_pairs": 4474,
+      "persistent_cycles_ge4": 840,
+      "longest_alternating_streak": 108,
+      "total_alternating_steps": 8969,
+      "nonzero_relay_steps": 9930
+    },
+    "command_mod": {
+      "frac_held": 0.5370061213132999,
+      "frac_lattice": 0.5370061213132999
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.3102499486765583,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Monza",
+    "policy": "HOLD_LATTICE16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 215.6,
+    "total_distance_m": 1321.2315811200974,
+    "lap_times": [
+      72.84,
+      71.36000000000001,
+      71.39999999999998
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.463029780571242,
+      "lat_mean_signed_cm": 0.7251923509477703,
+      "lat_median_signed_cm": 0.65354704991305,
+      "lat_std_cm": 3.386247379511743,
+      "lat_max_abs_cm": 11.330693430440252,
+      "head_rmse_100hz_deg": 4.52408630368875,
+      "head_mean_signed_deg": -0.2980388105126326
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 1.8151785435010814,
+      "delta_pub_rms_mrad": 14.217603867749999,
+      "delta_pub_max_mrad": 32.00000000000003,
+      "steer_rate_rms_rad_s": 0.7108801933874997,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 7.634012043192869e-15,
+      "phase_err_40ms_mean_abs_mrad": 3.066501907069948e-15,
+      "phase_err_40ms_p95_mrad": 2.0816681711721685e-14,
+      "phase_err_40ms_max_mrad": 2.7755575615628914e-14,
+      "phase_err_end_rms_mrad": 7.634720306129235e-15,
+      "phase_err_end_mean_abs_mrad": 3.0670709369283758e-15,
+      "phase_err_end_p95_mrad": 2.0816681711721685e-14,
+      "phase_err_end_max_mrad": 2.7755575615628914e-14,
+      "phase_samples": 5390
+    },
+    "chatter": {
+      "target_crossings": 0,
+      "relay_sign_reversals": 0,
+      "plus_minus_pairs": 0,
+      "minus_plus_pairs": 0,
+      "persistent_cycles_ge4": 0,
+      "longest_alternating_streak": 0,
+      "total_alternating_steps": 0,
+      "nonzero_relay_steps": 1064
+    },
+    "command_mod": {
+      "frac_held": 0.8026340196624003,
+      "frac_lattice": 1.0
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.3102499486765583,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "BrandsHatch",
+    "policy": "RAW",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 181.76,
+    "total_distance_m": 1053.9350078979353,
+    "lap_times": [
+      61.52,
+      60.12,
+      60.11999999999999
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.880731826250953,
+      "lat_mean_signed_cm": 1.070128616893682,
+      "lat_median_signed_cm": 0.7583330642617757,
+      "lat_std_cm": 3.730268656622773,
+      "lat_max_abs_cm": 9.329500296615352,
+      "head_rmse_100hz_deg": 1.2212464276146633,
+      "head_mean_signed_deg": -0.4129747322343978
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.049796183489498,
+      "delta_pub_rms_mrad": 5.221829330993246,
+      "delta_pub_max_mrad": 22.10616081158281,
+      "steer_rate_rms_rad_s": 3.183496173599702,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 16.315780113514087,
+      "phase_err_40ms_mean_abs_mrad": 12.650695177503946,
+      "phase_err_40ms_p95_mrad": 30.10851279583478,
+      "phase_err_40ms_max_mrad": 31.898841703473998,
+      "phase_err_end_rms_mrad": 16.317518845287008,
+      "phase_err_end_mean_abs_mrad": 12.652840641986913,
+      "phase_err_end_p95_mrad": 30.108552182827154,
+      "phase_err_end_max_mrad": 31.898841703473998,
+      "phase_samples": 4544
+    },
+    "chatter": {
+      "target_crossings": 16640,
+      "relay_sign_reversals": 16640,
+      "plus_minus_pairs": 8322,
+      "minus_plus_pairs": 8318,
+      "persistent_cycles_ge4": 1348,
+      "longest_alternating_streak": 168,
+      "total_alternating_steps": 16640,
+      "nonzero_relay_steps": 17990
+    },
+    "command_mod": {
+      "frac_held": 0.0,
+      "frac_lattice": 0.00044004400440044003
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.3719813858222006,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "BrandsHatch",
+    "policy": "HOLD16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 181.8,
+    "total_distance_m": 1054.31724582451,
+    "lap_times": [
+      61.56,
+      60.08,
+      60.16000000000001
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 4.140169101863707,
+      "lat_mean_signed_cm": 1.1720997885382491,
+      "lat_median_signed_cm": 0.9780877401662346,
+      "lat_std_cm": 3.970791140029342,
+      "lat_max_abs_cm": 10.0459945428898,
+      "head_rmse_100hz_deg": 1.2425074151821465,
+      "head_mean_signed_deg": -0.406237869341822
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.081432603798038,
+      "delta_pub_rms_mrad": 8.262809330983739,
+      "delta_pub_max_mrad": 30.96445489064291,
+      "steer_rate_rms_rad_s": 2.6239750998308753,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 20.45617355010028,
+      "phase_err_40ms_mean_abs_mrad": 16.446616331308185,
+      "phase_err_40ms_p95_mrad": 30.968368497624404,
+      "phase_err_40ms_max_mrad": 31.88706674081887,
+      "phase_err_end_rms_mrad": 20.458424325653127,
+      "phase_err_end_mean_abs_mrad": 16.45023574511349,
+      "phase_err_end_p95_mrad": 30.96841077825097,
+      "phase_err_end_max_mrad": 31.88706674081887,
+      "phase_samples": 4545
+    },
+    "chatter": {
+      "target_crossings": 11205,
+      "relay_sign_reversals": 11205,
+      "plus_minus_pairs": 5579,
+      "minus_plus_pairs": 5626,
+      "persistent_cycles_ge4": 955,
+      "longest_alternating_streak": 80,
+      "total_alternating_steps": 11205,
+      "nonzero_relay_steps": 12224
+    },
+    "command_mod": {
+      "frac_held": 0.3231412230532336,
+      "frac_lattice": 0.32424109106907173
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.36237536652183944,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "BrandsHatch",
+    "policy": "HOLD_LATTICE16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 181.76,
+    "total_distance_m": 1053.9661079169814,
+    "lap_times": [
+      61.52,
+      60.12,
+      60.11999999999999
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 4.174893890657023,
+      "lat_mean_signed_cm": 1.318663035239255,
+      "lat_median_signed_cm": 1.4451430087239396,
+      "lat_std_cm": 3.961169877414869,
+      "lat_max_abs_cm": 10.344184619593289,
+      "head_rmse_100hz_deg": 1.2244529688247627,
+      "head_mean_signed_deg": -0.4070875725634079
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.1440071702264802,
+      "delta_pub_rms_mrad": 15.279554598626047,
+      "delta_pub_max_mrad": 32.00000000000003,
+      "steer_rate_rms_rad_s": 0.7639777299313022,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 7.850921188247551e-15,
+      "phase_err_40ms_mean_abs_mrad": 3.299944922170669e-15,
+      "phase_err_40ms_p95_mrad": 2.0816681711721685e-14,
+      "phase_err_40ms_max_mrad": 2.7755575615628914e-14,
+      "phase_err_end_rms_mrad": 7.851785208630758e-15,
+      "phase_err_end_mean_abs_mrad": 3.300671302298816e-15,
+      "phase_err_end_p95_mrad": 2.0816681711721685e-14,
+      "phase_err_end_max_mrad": 2.7755575615628914e-14,
+      "phase_samples": 4544
+    },
+    "chatter": {
+      "target_crossings": 0,
+      "relay_sign_reversals": 0,
+      "plus_minus_pairs": 0,
+      "minus_plus_pairs": 0,
+      "persistent_cycles_ge4": 0,
+      "longest_alternating_streak": 0,
+      "total_alternating_steps": 0,
+      "nonzero_relay_steps": 1036
+    },
+    "command_mod": {
+      "frac_held": 0.772057205720572,
+      "frac_lattice": 1.0
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.34971906749074533,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Silverstone",
+    "policy": "RAW",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 262.76,
+    "total_distance_m": 1345.755544313841,
+    "lap_times": [
+      88.52,
+      87.12000000000002,
+      87.11999999999998
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.5085998388376884,
+      "lat_mean_signed_cm": 0.5877452196109668,
+      "lat_median_signed_cm": 0.399980899605688,
+      "lat_std_cm": 3.459021304634638,
+      "lat_max_abs_cm": 10.636572706122745,
+      "head_rmse_100hz_deg": 3.713682271398724,
+      "head_mean_signed_deg": -0.1588600685825292
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.6611328039627034,
+      "delta_pub_rms_mrad": 6.182660547129595,
+      "delta_pub_max_mrad": 29.35533733199696,
+      "steer_rate_rms_rad_s": 3.1835778951268145,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 16.933348545617786,
+      "phase_err_40ms_mean_abs_mrad": 13.519176399282571,
+      "phase_err_40ms_p95_mrad": 30.333553007779255,
+      "phase_err_40ms_max_mrad": 31.89893623563269,
+      "phase_err_end_rms_mrad": 16.934636819444666,
+      "phase_err_end_mean_abs_mrad": 13.521172275492424,
+      "phase_err_end_p95_mrad": 30.33394849376406,
+      "phase_err_end_max_mrad": 31.89893623563269,
+      "phase_samples": 6569
+    },
+    "chatter": {
+      "target_crossings": 24169,
+      "relay_sign_reversals": 24169,
+      "plus_minus_pairs": 12085,
+      "minus_plus_pairs": 12084,
+      "persistent_cycles_ge4": 1832,
+      "longest_alternating_streak": 120,
+      "total_alternating_steps": 24169,
+      "nonzero_relay_steps": 26008
+    },
+    "command_mod": {
+      "frac_held": 0.0,
+      "frac_lattice": 0.00106544901065449
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.30053766913932545,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Silverstone",
+    "policy": "HOLD16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 262.76,
+    "total_distance_m": 1345.8550811679247,
+    "lap_times": [
+      88.52,
+      87.12000000000002,
+      87.11999999999998
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.7165302244177205,
+      "lat_mean_signed_cm": 0.6284019730989033,
+      "lat_median_signed_cm": 0.5619657553669247,
+      "lat_std_cm": 3.6630189556178703,
+      "lat_max_abs_cm": 11.109047368594815,
+      "head_rmse_100hz_deg": 3.7151314602213388,
+      "head_mean_signed_deg": -0.16940912463454888
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.6977712208529057,
+      "delta_pub_rms_mrad": 8.606785989088614,
+      "delta_pub_max_mrad": 35.147425604244944,
+      "steer_rate_rms_rad_s": 2.4602772041884284,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 19.151749596935666,
+      "phase_err_40ms_mean_abs_mrad": 14.459363317502023,
+      "phase_err_40ms_p95_mrad": 30.787093740711672,
+      "phase_err_40ms_max_mrad": 31.897364527612716,
+      "phase_err_end_rms_mrad": 19.14920187685405,
+      "phase_err_end_mean_abs_mrad": 14.456731639870336,
+      "phase_err_end_p95_mrad": 30.78211387064757,
+      "phase_err_end_max_mrad": 31.897364527612716,
+      "phase_samples": 6569
+    },
+    "chatter": {
+      "target_crossings": 14208,
+      "relay_sign_reversals": 14208,
+      "plus_minus_pairs": 7085,
+      "minus_plus_pairs": 7123,
+      "persistent_cycles_ge4": 1209,
+      "longest_alternating_streak": 120,
+      "total_alternating_steps": 14208,
+      "nonzero_relay_steps": 15533
+    },
+    "command_mod": {
+      "frac_held": 0.40517503805175037,
+      "frac_lattice": 0.4060882800608828
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.30104709124555096,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Silverstone",
+    "policy": "HOLD_LATTICE16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 262.76,
+    "total_distance_m": 1345.8111518787073,
+    "lap_times": [
+      88.52,
+      87.12000000000002,
+      87.11999999999998
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.5978381401656314,
+      "lat_mean_signed_cm": 0.5734343690977236,
+      "lat_median_signed_cm": 0.47401738980304836,
+      "lat_std_cm": 3.55184632369814,
+      "lat_max_abs_cm": 10.338468841491508,
+      "head_rmse_100hz_deg": 3.7086939600648705,
+      "head_mean_signed_deg": -0.16972942413124278
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.7292340660843903,
+      "delta_pub_rms_mrad": 14.95116116818553,
+      "delta_pub_max_mrad": 32.00000000000003,
+      "steer_rate_rms_rad_s": 0.7475580584092765,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 8.234456823197858e-15,
+      "phase_err_40ms_mean_abs_mrad": 3.3558937330968584e-15,
+      "phase_err_40ms_p95_mrad": 2.0816681711721685e-14,
+      "phase_err_40ms_max_mrad": 2.7755575615628914e-14,
+      "phase_err_end_rms_mrad": 8.235083661155847e-15,
+      "phase_err_end_mean_abs_mrad": 3.356404679158536e-15,
+      "phase_err_end_p95_mrad": 2.0816681711721685e-14,
+      "phase_err_end_max_mrad": 2.7755575615628914e-14,
+      "phase_samples": 6569
+    },
+    "chatter": {
+      "target_crossings": 0,
+      "relay_sign_reversals": 0,
+      "plus_minus_pairs": 0,
+      "minus_plus_pairs": 0,
+      "persistent_cycles_ge4": 0,
+      "longest_alternating_streak": 0,
+      "total_alternating_steps": 0,
+      "nonzero_relay_steps": 1434
+    },
+    "command_mod": {
+      "frac_held": 0.7817351598173516,
+      "frac_lattice": 1.0
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.2959585664698711,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Catalunya",
+    "policy": "RAW",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 229.4,
+    "total_distance_m": 1213.3208466130015,
+    "lap_times": [
+      77.44,
+      75.96000000000001,
+      76.0
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.7021236619914926,
+      "lat_mean_signed_cm": 0.7796417359288587,
+      "lat_median_signed_cm": 0.4594116739462726,
+      "lat_std_cm": 3.6190991105902492,
+      "lat_max_abs_cm": 10.15155283245306,
+      "head_rmse_100hz_deg": 1.4822608286244499,
+      "head_mean_signed_deg": -0.36004433314753326
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.3999394264063385,
+      "delta_pub_rms_mrad": 5.0042772830007936,
+      "delta_pub_max_mrad": 19.35133717296975,
+      "steer_rate_rms_rad_s": 3.1707820426493827,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 17.084090151617133,
+      "phase_err_40ms_mean_abs_mrad": 13.467425896018849,
+      "phase_err_40ms_p95_mrad": 30.56353271636936,
+      "phase_err_40ms_max_mrad": 31.89723461656676,
+      "phase_err_end_rms_mrad": 17.085557035693515,
+      "phase_err_end_mean_abs_mrad": 13.469406229487186,
+      "phase_err_end_p95_mrad": 30.563606142968904,
+      "phase_err_end_max_mrad": 31.89723461656676,
+      "phase_samples": 5735
+    },
+    "chatter": {
+      "target_crossings": 20922,
+      "relay_sign_reversals": 20922,
+      "plus_minus_pairs": 10464,
+      "minus_plus_pairs": 10458,
+      "persistent_cycles_ge4": 1601,
+      "longest_alternating_streak": 124,
+      "total_alternating_steps": 20922,
+      "nonzero_relay_steps": 22524
+    },
+    "command_mod": {
+      "frac_held": 0.0,
+      "frac_lattice": 0.00697350069735007
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.321950571051714,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Catalunya",
+    "policy": "HOLD16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 229.48000000000002,
+    "total_distance_m": 1213.7430504004178,
+    "lap_times": [
+      77.44,
+      76.0,
+      76.04000000000002
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.922861735880979,
+      "lat_mean_signed_cm": 0.7628018508347707,
+      "lat_median_signed_cm": 0.5881001090684654,
+      "lat_std_cm": 3.847983567428813,
+      "lat_max_abs_cm": 10.583282695017358,
+      "head_rmse_100hz_deg": 1.476436323674999,
+      "head_mean_signed_deg": -0.3535647107785827
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.4194022607224253,
+      "delta_pub_rms_mrad": 7.44603757745039,
+      "delta_pub_max_mrad": 32.74661364685396,
+      "steer_rate_rms_rad_s": 2.4306450910518276,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 18.768476137033243,
+      "phase_err_40ms_mean_abs_mrad": 13.976197876739713,
+      "phase_err_40ms_p95_mrad": 30.798968592660078,
+      "phase_err_40ms_max_mrad": 31.886210567116173,
+      "phase_err_end_rms_mrad": 18.770112090502206,
+      "phase_err_end_mean_abs_mrad": 13.978634452380708,
+      "phase_err_end_p95_mrad": 30.798979733548514,
+      "phase_err_end_max_mrad": 31.886210567116173,
+      "phase_samples": 5737
+    },
+    "chatter": {
+      "target_crossings": 12238,
+      "relay_sign_reversals": 12238,
+      "plus_minus_pairs": 6118,
+      "minus_plus_pairs": 6120,
+      "persistent_cycles_ge4": 938,
+      "longest_alternating_streak": 107,
+      "total_alternating_steps": 12238,
+      "nonzero_relay_steps": 13240
+    },
+    "command_mod": {
+      "frac_held": 0.4194841408156152,
+      "frac_lattice": 0.4198326943185779
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.32609826401824127,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Catalunya",
+    "policy": "HOLD_LATTICE16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 229.48000000000002,
+    "total_distance_m": 1213.7642010049296,
+    "lap_times": [
+      77.48,
+      75.99999999999999,
+      76.00000000000003
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.9619491276068044,
+      "lat_mean_signed_cm": 0.8892704395023593,
+      "lat_median_signed_cm": 0.7871468366282657,
+      "lat_std_cm": 3.8608598751018666,
+      "lat_max_abs_cm": 10.470444129098079,
+      "head_rmse_100hz_deg": 1.4901893152304464,
+      "head_mean_signed_deg": -0.35523583235924944
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.495038460446249,
+      "delta_pub_rms_mrad": 14.996600625789847,
+      "delta_pub_max_mrad": 32.00000000000003,
+      "steer_rate_rms_rad_s": 0.7498300312894922,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 8.30382212238343e-15,
+      "phase_err_40ms_mean_abs_mrad": 3.3357973482614843e-15,
+      "phase_err_40ms_p95_mrad": 2.0816681711721685e-14,
+      "phase_err_40ms_max_mrad": 2.7755575615628914e-14,
+      "phase_err_end_rms_mrad": 8.304545924705343e-15,
+      "phase_err_end_mean_abs_mrad": 3.3363789028898426e-15,
+      "phase_err_end_p95_mrad": 2.0816681711721685e-14,
+      "phase_err_end_max_mrad": 2.7755575615628914e-14,
+      "phase_samples": 5737
+    },
+    "chatter": {
+      "target_crossings": 0,
+      "relay_sign_reversals": 0,
+      "plus_minus_pairs": 0,
+      "minus_plus_pairs": 0,
+      "persistent_cycles_ge4": 0,
+      "longest_alternating_streak": 0,
+      "total_alternating_steps": 0,
+      "nonzero_relay_steps": 1260
+    },
+    "command_mod": {
+      "frac_held": 0.780411293133496,
+      "frac_lattice": 1.0
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.32609826401824127,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Spa",
+    "policy": "RAW",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 300.84000000000003,
+    "total_distance_m": 1632.747176965285,
+    "lap_times": [
+      101.24000000000001,
+      99.79999999999998,
+      99.80000000000004
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.4836957774383066,
+      "lat_mean_signed_cm": 0.10030506559022001,
+      "lat_median_signed_cm": 0.0298593523979826,
+      "lat_std_cm": 3.4822514503634614,
+      "lat_max_abs_cm": 10.774235651671843,
+      "head_rmse_100hz_deg": 3.9209802760451202,
+      "head_mean_signed_deg": 0.016305086294346023
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.5361744617997086,
+      "delta_pub_rms_mrad": 6.177043980150774,
+      "delta_pub_max_mrad": 26.149621554239737,
+      "steer_rate_rms_rad_s": 3.1851269841351404,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 15.230922708104288,
+      "phase_err_40ms_mean_abs_mrad": 11.656174690770989,
+      "phase_err_40ms_p95_mrad": 29.838815694432462,
+      "phase_err_40ms_max_mrad": 31.892977840272252,
+      "phase_err_end_rms_mrad": 15.2316299026909,
+      "phase_err_end_mean_abs_mrad": 11.656612308984696,
+      "phase_err_end_p95_mrad": 29.838947188047246,
+      "phase_err_end_max_mrad": 31.892977840272252,
+      "phase_samples": 7521
+    },
+    "chatter": {
+      "target_crossings": 27481,
+      "relay_sign_reversals": 27481,
+      "plus_minus_pairs": 13744,
+      "minus_plus_pairs": 13737,
+      "persistent_cycles_ge4": 2320,
+      "longest_alternating_streak": 136,
+      "total_alternating_steps": 27481,
+      "nonzero_relay_steps": 29806
+    },
+    "command_mod": {
+      "frac_held": 0.0,
+      "frac_lattice": 0.0009306035628822122
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.29806675034929064,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Spa",
+    "policy": "HOLD16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 300.92,
+    "total_distance_m": 1633.1325389662013,
+    "lap_times": [
+      101.28,
+      99.80000000000001,
+      99.84
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.9132871849607773,
+      "lat_mean_signed_cm": 0.23519695775328872,
+      "lat_median_signed_cm": 0.11503749172806467,
+      "lat_std_cm": 3.906212869652887,
+      "lat_max_abs_cm": 11.699193592334286,
+      "head_rmse_100hz_deg": 3.921376382305659,
+      "head_mean_signed_deg": 0.014844017438424666
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.547142209572731,
+      "delta_pub_rms_mrad": 8.689718070263257,
+      "delta_pub_max_mrad": 43.204600637933716,
+      "steer_rate_rms_rad_s": 2.324827422454792,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 17.74787111651673,
+      "phase_err_40ms_mean_abs_mrad": 12.632514277330845,
+      "phase_err_40ms_p95_mrad": 30.594891133266795,
+      "phase_err_40ms_max_mrad": 31.899166782861617,
+      "phase_err_end_rms_mrad": 17.74762127757405,
+      "phase_err_end_mean_abs_mrad": 12.631596375732203,
+      "phase_err_end_p95_mrad": 30.59514995300588,
+      "phase_err_end_max_mrad": 31.899166782861617,
+      "phase_samples": 7523
+    },
+    "chatter": {
+      "target_crossings": 14463,
+      "relay_sign_reversals": 14463,
+      "plus_minus_pairs": 7215,
+      "minus_plus_pairs": 7248,
+      "persistent_cycles_ge4": 1303,
+      "longest_alternating_streak": 104,
+      "total_alternating_steps": 14463,
+      "nonzero_relay_steps": 15884
+    },
+    "command_mod": {
+      "frac_held": 0.46956406166932485,
+      "frac_lattice": 0.46982987772461454
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.3006979008919326,
+      "out_of_bounds": 0
+    }
+  },
+  {
+    "phase": "Phase_1_Nominal",
+    "condition": "nominal",
+    "track": "Spa",
+    "policy": "HOLD_LATTICE16",
+    "seed": null,
+    "params": {
+      "sigma_pos_m": 0.0,
+      "sigma_heading_deg": 0.0,
+      "actual_delay_ms": 20.0,
+      "actual_slew_rad_s": 3.2,
+      "relay_quantum_mrad": 32.0,
+      "timing_jitter": false
+    },
+    "laps_completed": 3,
+    "total_time_s": 300.88,
+    "total_distance_m": 1632.8594142640045,
+    "lap_times": [
+      101.24000000000001,
+      99.84,
+      99.79999999999998
+    ],
+    "tracking": {
+      "lat_rmse_100hz_cm": 3.658282812549645,
+      "lat_mean_signed_cm": 0.06423217490085631,
+      "lat_median_signed_cm": 0.10791459233441948,
+      "lat_std_cm": 3.657718874422096,
+      "lat_max_abs_cm": 11.684401177229041,
+      "head_rmse_100hz_deg": 3.9398618687576428,
+      "head_mean_signed_deg": 0.009406696416158763
+    },
+    "steering": {
+      "pub_cmd_rms_deg": 2.598505752614544,
+      "delta_pub_rms_mrad": 14.63813262957911,
+      "delta_pub_max_mrad": 32.00000000000003,
+      "steer_rate_rms_rad_s": 0.7319066314789553,
+      "steer_rate_max_rad_s": 3.2,
+      "phase_err_40ms_rms_mrad": 7.872787849633131e-15,
+      "phase_err_40ms_mean_abs_mrad": 3.1927029781205687e-15,
+      "phase_err_40ms_p95_mrad": 2.0816681711721685e-14,
+      "phase_err_40ms_max_mrad": 2.7755575615628914e-14,
+      "phase_err_end_rms_mrad": 7.871684838094114e-15,
+      "phase_err_end_mean_abs_mrad": 3.1912822781033244e-15,
+      "phase_err_end_p95_mrad": 2.0816681711721685e-14,
+      "phase_err_end_max_mrad": 2.7755575615628914e-14,
+      "phase_samples": 7522
+    },
+    "chatter": {
+      "target_crossings": 0,
+      "relay_sign_reversals": 0,
+      "plus_minus_pairs": 0,
+      "minus_plus_pairs": 0,
+      "persistent_cycles_ge4": 0,
+      "longest_alternating_streak": 0,
+      "total_alternating_steps": 0,
+      "nonzero_relay_steps": 1574
+    },
+    "command_mod": {
+      "frac_held": 0.7907749567991492,
+      "frac_lattice": 1.0
+    },
+    "safety": {
+      "failed": false,
+      "collisions": 0,
+      "min_lidar_m": 0.3006979008919326,
+      "out_of_bounds": 0
+    }
+  }
+]
