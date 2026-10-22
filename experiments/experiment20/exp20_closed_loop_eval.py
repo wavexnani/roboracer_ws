@@ -12,7 +12,7 @@ import math
 import json
 import numpy as np
 
-for p in ['/sim_ws/src/mpc_controller', '/home/yeswanth/roboracer_ws/src/mpc_controller', '/home/yeswanth/roboracer_ws']:
+for p in ['/sim_ws/src/mpc_controller', '/home/yeswanth/roboracer_ws/src/controllers/mpc_controller', '/home/yeswanth/roboracer_ws/src/mpc_controller', '/home/yeswanth/roboracer_ws']:
     if os.path.isdir(p) and p not in sys.path:
         sys.path.insert(0, p)
 

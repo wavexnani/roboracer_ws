@@ -25,7 +25,12 @@ def launch_setup(context, *args, **kwargs):
     launch_sim_bool = context.launch_configurations.get('launch_sim', 'false').strip().lower() in ('true', '1')
 
     # Pre-sync sim.yaml using TrackManager before launching nodes
-    for p in ['/sim_ws/src/stanley_controller', '/home/yeswanth/roboracer_ws/src/stanley_controller']:
+    for p in [
+        '/home/yeswanth/roboracer_ws/src/controllers/stanley_controller',
+        '/sim_ws/src/controllers/stanley_controller',
+        '/sim_ws/src/stanley_controller',
+        '/home/yeswanth/roboracer_ws/src/stanley_controller',
+    ]:
         if os.path.isdir(p) and p not in sys.path:
             sys.path.insert(0, p)
 

@@ -11,8 +11,13 @@ import os
 import unittest
 import numpy as np
 
-# Ensure mpc_controller package is in sys.path
-for p in ['/sim_ws/src/mpc_controller', '/home/yeswanth/roboracer_ws/src/mpc_controller']:
+for p in [
+    os.path.abspath(os.path.join(os.path.dirname(__file__), '../src/controllers/mpc_controller')),
+    '/home/yeswanth/roboracer_ws/src/controllers/mpc_controller',
+    '/sim_ws/src/controllers/mpc_controller',
+    '/sim_ws/src/mpc_controller',
+    '/home/yeswanth/roboracer_ws/src/mpc_controller',
+]:
     if os.path.isdir(p) and p not in sys.path:
         sys.path.insert(0, p)
 

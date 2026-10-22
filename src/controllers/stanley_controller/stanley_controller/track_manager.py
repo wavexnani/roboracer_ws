@@ -59,15 +59,25 @@ class TrackManager:
     def get_racetracks_root(cls) -> str:
         """Returns the absolute path to f1tenth_racetracks directory."""
         ws_root = cls.get_workspace_root()
-        cand = os.path.join(ws_root, 'src', 'f1tenth_racetracks')
-        if os.path.isdir(cand):
-            return cand
+        for cand in [
+            os.path.join(ws_root, 'src', 'simulation', 'f1tenth_racetracks'),
+            os.path.join(ws_root, 'src', 'f1tenth_racetracks'),
+            '/home/yeswanth/roboracer_ws/src/simulation/f1tenth_racetracks',
+            '/home/yeswanth/roboracer_ws/src/f1tenth_racetracks',
+            '/sim_ws/src/simulation/f1tenth_racetracks',
+            '/sim_ws/src/f1tenth_racetracks',
+        ]:
+            if os.path.isdir(cand):
+                return cand
+
         # Search relative to current script
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        cand2 = os.path.abspath(os.path.join(script_dir, '../../f1tenth_racetracks'))
-        if os.path.isdir(cand2):
-            return cand2
-        return '/home/yeswanth/roboracer_ws/src/f1tenth_racetracks'
+        for rel in ['../../../../simulation/f1tenth_racetracks', '../../f1tenth_racetracks']:
+            cand2 = os.path.abspath(os.path.join(script_dir, rel))
+            if os.path.isdir(cand2):
+                return cand2
+
+        return os.path.join(ws_root, 'src', 'simulation', 'f1tenth_racetracks')
 
     @classmethod
     def list_available_tracks(cls) -> List[str]:
@@ -158,6 +168,11 @@ class TrackManager:
         # Fallback to local stanley_controller waypoints folder
         if active_csv is None or not os.path.isfile(active_csv):
             local_cands = [
+                os.path.join(ws_root, f'src/controllers/stanley_controller/waypoints/{canonical_name}_{waypoint_type}.csv'),
+                os.path.join(ws_root, f'src/controllers/stanley_controller/waypoints/{canonical_name}_raceline.csv'),
+                os.path.join(ws_root, f'src/controllers/stanley_controller/waypoints/{canonical_name}_centerline.csv'),
+                os.path.join(ws_root, 'src/controllers/stanley_controller/waypoints/Spielberg_raceline.csv'),
+                os.path.join(ws_root, 'src/controllers/stanley_controller/waypoints/Spielberg_centerline.csv'),
                 os.path.join(ws_root, f'src/stanley_controller/waypoints/{canonical_name}_{waypoint_type}.csv'),
                 os.path.join(ws_root, f'src/stanley_controller/waypoints/{canonical_name}_raceline.csv'),
                 os.path.join(ws_root, f'src/stanley_controller/waypoints/{canonical_name}_centerline.csv'),
@@ -268,6 +283,7 @@ class TrackManager:
         ws_root = cls.get_workspace_root()
         target_yamls = [
             custom_sim_yaml,
+            os.path.join(ws_root, 'src/simulation/f1tenth_gym_ros/config/sim.yaml'),
             os.path.join(ws_root, 'src/f1tenth_gym_ros/config/sim.yaml'),
             os.path.join(ws_root, 'install/f1tenth_gym_ros/share/f1tenth_gym_ros/config/sim.yaml'),
         ]

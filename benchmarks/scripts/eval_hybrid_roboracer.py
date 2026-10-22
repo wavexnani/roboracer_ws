@@ -18,8 +18,12 @@ import numpy as np
 
 warnings.filterwarnings('ignore')
 
-WS_ROOT = '/home/yeswanth/roboracer_ws'
-for p in [f'{WS_ROOT}/install/hybrid_controller/lib/python3.12/site-packages', f'{WS_ROOT}/src/hybrid_controller']:
+WS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+for p in [
+    f'{WS_ROOT}/install/hybrid_controller/lib/python3.12/site-packages',
+    f'{WS_ROOT}/src/controllers/hybrid_controller',
+    f'{WS_ROOT}/src/hybrid_controller',
+]:
     if os.path.isdir(p) and p not in sys.path:
         sys.path.insert(0, p)
 

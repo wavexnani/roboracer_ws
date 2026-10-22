@@ -13,31 +13,41 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-WS_ROOT = '/home/yeswanth/roboracer_ws'
-PLOTS_DIR = os.path.join(WS_ROOT, 'benchmark_plots')
+WS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+BENCHMARKS_DIR = os.path.join(WS_ROOT, 'benchmarks')
+PLOTS_DIR = os.path.join(BENCHMARKS_DIR, 'plots')
+DATA_DIR = os.path.join(BENCHMARKS_DIR, 'data')
+TELEM_DIR = os.path.join(DATA_DIR, 'telemetry')
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
+def find_file(filename, subdirs=[DATA_DIR, TELEM_DIR, WS_ROOT]):
+    for d in subdirs:
+        p = os.path.join(d, filename)
+        if os.path.exists(p):
+            return p
+    return os.path.join(DATA_DIR, filename)
+
 # 1. Merge datasets
-with open(os.path.join(WS_ROOT, 'benchmark_results.json'), 'r') as f:
+with open(find_file('benchmark_results.json'), 'r') as f:
     base_results = json.load(f)
 
-with open(os.path.join(WS_ROOT, 'benchmark_levine_baselines.json'), 'r') as f:
+with open(find_file('benchmark_levine_baselines.json'), 'r') as f:
     levine_baselines = json.load(f)
 
-with open(os.path.join(WS_ROOT, 'benchmark_hybrid_results.json'), 'r') as f:
+with open(find_file('benchmark_hybrid_results.json'), 'r') as f:
     hybrid_results = json.load(f)
 
 unified_results = base_results + levine_baselines + hybrid_results
-with open(os.path.join(WS_ROOT, 'benchmark_5way_results.json'), 'w') as f:
+with open(os.path.join(DATA_DIR, 'benchmark_5way_results.json'), 'w') as f:
     json.dump(unified_results, f, indent=2)
 
 print(f"Unified dataset contains {len(unified_results)} benchmark runs across 5 controllers.")
 
 # Load telemetry
-with open(os.path.join(WS_ROOT, 'benchmark_telemetry.json'), 'r') as f:
+with open(find_file('benchmark_telemetry.json'), 'r') as f:
     base_telem = json.load(f)
 
-with open(os.path.join(WS_ROOT, 'benchmark_hybrid_telemetry.json'), 'r') as f:
+with open(find_file('benchmark_hybrid_telemetry.json'), 'r') as f:
     hybrid_telem = json.load(f)
 
 # 2. Color Palette & Labels

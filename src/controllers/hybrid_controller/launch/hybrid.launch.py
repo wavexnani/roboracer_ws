@@ -14,7 +14,12 @@ from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
 # Ensure hybrid_controller is in sys.path
-for p in ['/home/yeswanth/roboracer_ws/src/hybrid_controller', '/sim_ws/src/hybrid_controller']:
+for p in [
+    '/home/yeswanth/roboracer_ws/src/controllers/hybrid_controller',
+    '/home/yeswanth/roboracer_ws/src/hybrid_controller',
+    '/sim_ws/src/controllers/hybrid_controller',
+    '/sim_ws/src/hybrid_controller',
+]:
     if os.path.isdir(p) and p not in sys.path:
         sys.path.insert(0, p)
 

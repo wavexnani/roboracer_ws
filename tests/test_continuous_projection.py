@@ -17,7 +17,16 @@ import math
 import json
 import numpy as np
 
-sys.path.insert(0, '/home/yeswanth/roboracer_ws/src/mpc_controller')
+import os
+for p in [
+    os.path.abspath(os.path.join(os.path.dirname(__file__), '../src/controllers/mpc_controller')),
+    '/home/yeswanth/roboracer_ws/src/controllers/mpc_controller',
+    '/sim_ws/src/controllers/mpc_controller',
+    '/sim_ws/src/mpc_controller',
+    '/home/yeswanth/roboracer_ws/src/mpc_controller',
+]:
+    if os.path.isdir(p) and p not in sys.path:
+        sys.path.insert(0, p)
 from mpc_controller.track_manager import TrackManager
 
 def compute_continuous_projection(cur_x, cur_y, closest_idx, waypoints, s_arr, track_length, num_waypoints):
@@ -149,8 +158,13 @@ def run_tests():
     print("✓ s_ref[0] exactly matches s_cont and horizon is strictly monotonic.")
 
     # Test 3: Replay all frames of Experiment 1 Telemetry
-    print("\n--- Test 3: Integrity Check Across All 270 Cycles of Experiment 1 ---")
-    with open('/home/yeswanth/roboracer_ws/diagnostic_experiment1_telemetry.json') as f:
+    telem_candidates = [
+        '/home/yeswanth/roboracer_ws/benchmarks/data/telemetry/diagnostic_experiment1_telemetry.json',
+        os.path.abspath(os.path.join(os.path.dirname(__file__), '../benchmarks/data/telemetry/diagnostic_experiment1_telemetry.json')),
+        '/home/yeswanth/roboracer_ws/diagnostic_experiment1_telemetry.json',
+    ]
+    telem_path = next((p for p in telem_candidates if os.path.exists(p)), telem_candidates[0])
+    with open(telem_path) as f:
         telem = json.load(f)
 
     max_backward_ds = 0.0

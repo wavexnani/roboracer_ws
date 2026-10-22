@@ -22,8 +22,11 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
 
-WS_ROOT = '/home/yeswanth/roboracer_ws'
-PLOTS_DIR = os.path.join(WS_ROOT, 'benchmark_plots')
+WS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+BENCHMARKS_DIR = os.path.join(WS_ROOT, 'benchmarks')
+PLOTS_DIR = os.path.join(BENCHMARKS_DIR, 'plots')
+DATA_DIR = os.path.join(BENCHMARKS_DIR, 'data')
+TELEM_DIR = os.path.join(DATA_DIR, 'telemetry')
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
 # Color Palette & Styling
@@ -53,8 +56,16 @@ LABELS = {
 
 
 def load_data():
-    summary_path = os.path.join(WS_ROOT, 'benchmark_results.json')
-    telem_path = os.path.join(WS_ROOT, 'benchmark_telemetry.json')
+    summary_path = os.path.join(DATA_DIR, 'benchmark_results.json')
+    if not os.path.exists(summary_path):
+        summary_path = os.path.join(WS_ROOT, 'benchmark_results.json')
+
+    telem_path = os.path.join(TELEM_DIR, 'benchmark_telemetry.json')
+    if not os.path.exists(telem_path):
+        telem_path = os.path.join(DATA_DIR, 'benchmark_telemetry.json')
+    if not os.path.exists(telem_path):
+        telem_path = os.path.join(WS_ROOT, 'benchmark_telemetry.json')
+
     with open(summary_path, 'r') as f:
         summary = json.load(f)
     with open(telem_path, 'r') as f:

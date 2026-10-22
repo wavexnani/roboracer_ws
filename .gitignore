@@ -16,6 +16,17 @@ __pycache__/
 *.pyc
 
 # Ignored packages in src (per configuration)
+src/simulation/f1tenth_gym/
+src/simulation/f1tenth_gym_ros/
+src/simulation/f1tenth_racetracks/
+src/controllers/gap_follow/
+src/controllers/pure_pursuit/
+src/controllers/safety_node/
+src/controllers/wall_follow/
+src/tutorials/lab1_pkg/
+src/hardware/stm32_vcu_bridge/
+
+# Legacy path patterns
 src/f1tenth_gym/
 src/f1tenth_gym_ros/
 src/f1tenth_racetracks/
@@ -24,3 +35,8 @@ src/lab1_pkg/
 src/pure_pursuit/
 src/safety_node/
 src/wall_follow/
+src/stm32_vcu_bridge/
+
+# Testing & IDE artifacts
+.pytest_cache/
+package.json

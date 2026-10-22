@@ -12,7 +12,14 @@ import sys
 import numpy as np
 import scipy.sparse as sp
 
-sys.path.insert(0, '/home/yeswanth/roboracer_ws/src/mpc_controller')
+import os
+for p in [
+    os.path.abspath(os.path.join(os.path.dirname(__file__), '../src/controllers/mpc_controller')),
+    '/home/yeswanth/roboracer_ws/src/controllers/mpc_controller',
+    '/home/yeswanth/roboracer_ws/src/mpc_controller',
+]:
+    if os.path.isdir(p) and p not in sys.path:
+        sys.path.insert(0, p)
 from mpc_controller.mpc_optimizer import MPCOptimizer, MPCConfig
 
 def test_backward_compatibility():
