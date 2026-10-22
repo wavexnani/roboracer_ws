@@ -35,7 +35,6 @@ def _patched_make(id, **kwargs):
     return env.unwrapped
 gym.make = _patched_make
 
-import f110_gym
 from hybrid_controller.track_manager import TrackManager
 from hybrid_controller.hybrid_supervisor import HybridSupervisor, DrivingRegime
 
@@ -77,6 +76,7 @@ def evaluate_hybrid_circuit(
         init_poses = np.array([[start_pose[0], start_pose[1], start_pose[2]]] + obs_poses)
     else:
         init_poses = np.array([[start_pose[0], start_pose[1], start_pose[2]]])
+    # pyrefly: ignore[bad-argument-count, bad-unpacking]
     obs, _, done, _ = env.reset(init_poses)
 
     supervisor = HybridSupervisor(
@@ -154,6 +154,7 @@ def evaluate_hybrid_circuit(
         else:
             action = np.array([[current_steer_cmd, current_speed_cmd]])
 
+        # pyrefly: ignore[bad-unpacking]
         obs, reward, done, info = env.step(action)
         sim_time += sim_dt
         step_count += 1

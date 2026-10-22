@@ -36,7 +36,6 @@ def _patched_make(id, **kwargs):
     return env.unwrapped
 gym.make = _patched_make
 
-import f110_gym
 from mpc_controller.track_manager import TrackManager, TrackInfo
 from mpc_controller.mpc_optimizer import MPCOptimizer, MPCConfig, MPCResult
 
@@ -438,10 +437,12 @@ def run_controlled_baseline(straight_w_psi: float = 2.0, actuator_delay_s: float
     map_path_no_ext = track.map_path_no_ext
 
     env = gym.make('f110_gym:f110-v0', map=map_path_no_ext, map_ext='.png', num_agents=1)
+    # pyrefly: ignore[bad-argument-count]
     reset_ret = env.reset(np.array([[start_pose[0], start_pose[1], start_pose[2]]]))
     obs = reset_ret[0] if isinstance(reset_ret, tuple) else reset_ret
 
     ctrl = DiagnosticMPCController(track, speed_scale=1.0, straight_w_psi=straight_w_psi, actuator_delay_s=actuator_delay_s, model_type=model_type)
+    # pyrefly: ignore[missing-attribute]
     agent = env.sim.agents[0]
 
     mpc_rate_hz = 25.0
@@ -504,6 +505,7 @@ def run_controlled_baseline(straight_w_psi: float = 2.0, actuator_delay_s: float
                 break
 
         # Step physics simulator
+        # pyrefly: ignore[bad-unpacking]
         obs, _, _, _ = env.step(np.array([[current_steer, current_speed]]))
         sim_time += sim_dt
         step_count += 1

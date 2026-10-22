@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-"""
-TrackManager for Hybrid Controller with Multi-Map Ingestion, SDF Safety Buffer, and Urethane Floor Physics.
-Supports all 24 racetracks from f1tenth_racetracks.
-Computes arc lengths, 2D parametric curvatures, SDF wall-clearance nudging, and backward-pass pre-braking velocity profiles.
-"""
-
 import os
 import glob
 import math
@@ -13,10 +6,12 @@ from typing import Optional, List, Tuple
 import numpy as np
 import yaml
 
+from .safety_clearance import apply_map_safety_clearance
+from .speed_profiler import generate_speed_profile, compute_centerline_geometry
+
 
 @dataclass
 class TrackInfo:
-    """Encapsulates geometric and velocity profile data for a racetrack."""
     track_name: str
     track_dir: str
     csv_path: str
@@ -31,12 +26,12 @@ class TrackInfo:
     map_yaml_path: Optional[str]
     map_png_path: Optional[str]
     map_path_no_ext: Optional[str]
-    track_width_est: float = 1.2  # Estimated minimum drivable width [m]
+    track_width_est: float = 1.2
     sdf_fn: Optional[object] = None
 
 
 class TrackManager:
-    """Manages universal discovery, loading, and velocity profiling for F1TENTH maps."""
+    """Discovery, loading, and velocity profiling for F1TENTH maps."""
 
     KNOWN_TRACKS = [
         'Austin', 'BrandsHatch', 'Budapest', 'Catalunya', 'Hockenheim', 'IMS',
@@ -109,11 +104,6 @@ class TrackManager:
         a_accel_max: float = 2.5,
         low_friction_mode: bool = False
     ) -> TrackInfo:
-        """
-        Loads track with SDF clearance buffering, curvature lookahead, and multi-pass backward pre-braking.
-        If low_friction_mode is True (e.g. BEXCO Hall 5A urethane floor), clamps lateral acceleration
-        to 2.0 m/s^2 and caps top speed to ensure zero snap oversteer.
-        """
         if low_friction_mode:
             lat_accel_max = min(lat_accel_max, 2.0)
             a_brake_max = min(a_brake_max, 1.8)
@@ -170,7 +160,6 @@ class TrackManager:
                 f"Could not find waypoints CSV for track '{track_name}' in '{track_dir}' or local fallback."
             )
 
-        # Parse CSV
         with open(active_csv, 'r') as f:
             first_data_line = ''
             for line in f:
@@ -185,7 +174,6 @@ class TrackManager:
 
         cols = data.shape[1]
 
-        # Discover map files
         map_yaml = None
         map_png = None
         map_path_no_ext = None
@@ -198,189 +186,32 @@ class TrackManager:
             if pngs:
                 map_png = pngs[0]
 
+        sdf_fn_instance = None
         if cols >= 6:
-            # Standard raceline: [s, x, y, psi, kappa, vx, (ax)]
             s_arr = data[:, 0]
             waypoints = np.copy(data[:, [1, 2]])
             headings = (data[:, 3] + math.pi) % (2.0 * math.pi) - math.pi
             kappa = np.copy(data[:, 4])
             target_speeds = np.copy(data[:, 5])
 
-            # Safety clearance buffer: check map SDF and nudge waypoints away from obstacles smoothly
-            safe_dist = 0.42
-            sdf_fn_instance = None
-            if map_yaml and os.path.isfile(map_yaml) and map_png and os.path.isfile(map_png):
-                try:
-                    from PIL import Image
-                    from scipy.ndimage import distance_transform_edt, gaussian_filter1d
-
-                    with open(map_yaml, 'r') as f:
-                        mcfg = yaml.safe_load(f)
-                    img = Image.open(map_png).convert('L')
-                    map_arr = np.array(img)
-                    res = float(mcfg['resolution'])
-                    origin = mcfg['origin']
-
-                    free_mask = (map_arr > 200).astype(np.float32)
-                    obs_mask = (map_arr <= 200).astype(np.float32)
-                    sdf = (distance_transform_edt(free_mask) - distance_transform_edt(obs_mask)) * res
-
-                    def get_sdf_val(x_w, y_w):
-                        px = int((x_w - origin[0]) / res)
-                        py = int((y_w - origin[1]) / res)
-                        iy = map_arr.shape[0] - py - 1
-                        if 0 <= px < map_arr.shape[1] and 0 <= iy < map_arr.shape[0]:
-                            return float(sdf[iy, px])
-                        return -1.0
-                    sdf_fn_instance = get_sdf_val
-
-                    # Centerline for safe directional guidance
-                    cl_cands = glob.glob(os.path.join(track_dir, '*centerline.csv'))
-                    cl_xy = None
-                    if cl_cands:
-                        sep_cl = ';' if ';' in open(cl_cands[0]).read(200) else ','
-                        cl_d = np.loadtxt(cl_cands[0], delimiter=sep_cl, comments='#')
-                        cl_xy = cl_d[:, :2]
-
-                    if cl_xy is not None:
-                        # 1. Continuous shift field with spatial smoothing
-                        for it in range(5):
-                            shifts = np.zeros_like(waypoints)
-                            for i in range(len(waypoints)):
-                                wx, wy = waypoints[i, 0], waypoints[i, 1]
-                                px = int((wx - origin[0]) / res)
-                                py = int((wy - origin[1]) / res)
-                                iy = map_arr.shape[0] - py - 1
-                                d = sdf[iy, px] if 0 <= px < map_arr.shape[1] and 0 <= iy < map_arr.shape[0] else -1.0
-
-                                if d < safe_dist:
-                                    closest_cl = int(np.argmin((cl_xy[:, 0] - wx)**2 + (cl_xy[:, 1] - wy)**2))
-                                    cx, cy = cl_xy[closest_cl]
-                                    v_to_cl = np.array([cx - wx, cy - wy])
-                                    dist_to_cl = math.hypot(v_to_cl[0], v_to_cl[1])
-                                    if dist_to_cl > 1e-3:
-                                        shifts[i] = (v_to_cl / dist_to_cl) * (safe_dist - d)
-
-                            shifts[:, 0] = gaussian_filter1d(shifts[:, 0], sigma=2.0, mode='wrap')
-                            shifts[:, 1] = gaussian_filter1d(shifts[:, 1], sigma=2.0, mode='wrap')
-                            waypoints += shifts * 1.20
-
-                        # 2. Strict obstacle clearance floor check
-                        for i in range(len(waypoints)):
-                            wx, wy = waypoints[i, 0], waypoints[i, 1]
-                            px = int((wx - origin[0]) / res)
-                            py = int((wy - origin[1]) / res)
-                            iy = map_arr.shape[0] - py - 1
-                            d = sdf[iy, px] if 0 <= px < map_arr.shape[1] and 0 <= iy < map_arr.shape[0] else -1.0
-                            if d < safe_dist:
-                                closest_cl = int(np.argmin((cl_xy[:, 0] - wx)**2 + (cl_xy[:, 1] - wy)**2))
-                                cx, cy = cl_xy[closest_cl]
-                                v_to_cl = np.array([cx - wx, cy - wy])
-                                dist_to_cl = math.hypot(v_to_cl[0], v_to_cl[1])
-                                if dist_to_cl > 1e-3:
-                                    waypoints[i] += (v_to_cl / dist_to_cl) * (safe_dist - d + 0.02)
-
-                        # Recompute arc length after safety shift
-                        diffs = np.diff(waypoints, axis=0)
-                        dists = np.hypot(diffs[:, 0], diffs[:, 1])
-                        s_arr = np.insert(np.cumsum(dists), 0, 0.0)
-
-                        # Analytic 2D parametric curvature with periodic circular padding
-                        N_pad = min(50, len(waypoints) // 4)
-                        x_pad = np.pad(waypoints[:, 0], N_pad, mode='wrap')
-                        y_pad = np.pad(waypoints[:, 1], N_pad, mode='wrap')
-
-                        dx = np.gradient(x_pad)
-                        dy = np.gradient(y_pad)
-                        ddx = np.gradient(dx)
-                        ddy = np.gradient(dy)
-
-                        denom = (dx**2 + dy**2)**1.5
-                        denom = np.where(denom < 1e-6, 1e-6, denom)
-                        kappa_pad = (dx * ddy - dy * ddx) / denom
-                        kappa = kappa_pad[N_pad:-N_pad]
-                        kappa = gaussian_filter1d(kappa, sigma=2.5, mode='wrap')
-
-                        headings_pad = np.arctan2(dy, dx)
-                        headings = headings_pad[N_pad:-N_pad]
-                        headings = (headings + math.pi) % (2.0 * math.pi) - math.pi
-
-                except Exception as e:
-                    print(f"[TrackManager] Warning during map safety clearance check: {e}")
-
-            # Dynamic curvature lookahead speed profiling
-            k_abs = np.abs(kappa)
-            N_pts = len(waypoints)
-            window_pts = min(20, max(5, N_pts // 20))
-            k_lookahead = np.zeros(N_pts)
-            for i in range(N_pts):
-                k_lookahead[i] = np.max([k_abs[(i + w) % N_pts] for w in range(window_pts)])
-
-            eff_lat_accel = np.clip(lat_accel_max - 1.0 * np.maximum(0.0, k_lookahead - 0.25), 1.6, lat_accel_max)
-            v_corner = np.where(k_lookahead > 0.04, np.sqrt(eff_lat_accel / np.maximum(k_lookahead, 1e-4)), max_straight_speed)
-            v_corner = np.clip(v_corner, min_corner_speed, max_straight_speed)
-            target_speeds = np.where(k_lookahead < 0.04, max_straight_speed, v_corner)
-
-            # Smooth forward-backward longitudinal acceleration/deceleration profiling
-            diffs = np.diff(waypoints, axis=0)
-            dists = np.hypot(diffs[:, 0], diffs[:, 1])
-            for _ in range(4):
-                # Backward pass
-                for i in range(N_pts - 1, -1, -1):
-                    i_next = (i + 1) % N_pts
-                    ds_step = dists[i] if i < len(dists) else dists[-1]
-                    v_max_brake = math.sqrt(target_speeds[i_next]**2 + 2.0 * a_brake_max * ds_step)
-                    if target_speeds[i] > v_max_brake:
-                        target_speeds[i] = v_max_brake
-
-                # Forward pass
-                for i in range(N_pts):
-                    i_prev = (i - 1) % N_pts
-                    ds_step = dists[i_prev] if i_prev < len(dists) else dists[0]
-                    v_max_accel = math.sqrt(target_speeds[i_prev]**2 + 2.0 * a_accel_max * ds_step)
-                    if target_speeds[i] > v_max_accel:
-                        target_speeds[i] = v_max_accel
-
+            waypoints, headings, s_arr, kappa, sdf_fn_instance = apply_map_safety_clearance(
+                map_yaml, map_png, track_dir, waypoints, headings, s_arr, kappa
+            )
+            target_speeds = generate_speed_profile(
+                waypoints, kappa, lat_accel_max, min_corner_speed,
+                max_straight_speed, a_brake_max, a_accel_max
+            )
         elif cols >= 2:
             waypoints = data[:, [0, 1]]
             diffs = np.diff(waypoints, axis=0)
             dists = np.hypot(diffs[:, 0], diffs[:, 1])
             s_arr = np.insert(np.cumsum(dists), 0, 0.0)
 
-            dx = np.gradient(waypoints[:, 0])
-            dy = np.gradient(waypoints[:, 1])
-            headings = np.arctan2(dy, dx)
-
-            dpsi = (np.gradient(headings) + math.pi) % (2.0 * math.pi) - math.pi
-            ds = np.gradient(s_arr)
-            ds = np.where(ds < 1e-4, 1e-4, ds)
-            kappa = dpsi / ds
-
-            k_abs = np.abs(kappa)
-            N_pts = len(waypoints)
-            window_pts = min(20, max(5, N_pts // 20))
-            k_lookahead = np.zeros(N_pts)
-            for i in range(N_pts):
-                k_lookahead[i] = np.max([k_abs[(i + w) % N_pts] for w in range(window_pts)])
-
-            eff_lat_accel = np.clip(lat_accel_max - 1.0 * np.maximum(0.0, k_lookahead - 0.25), 1.6, lat_accel_max)
-            v_profile = np.where(k_lookahead > 0.04, np.sqrt(eff_lat_accel / np.maximum(k_lookahead, 1e-4)), max_straight_speed)
-            target_speeds = np.clip(v_profile, min_corner_speed, max_straight_speed)
-            target_speeds = np.where(k_lookahead < 0.04, max_straight_speed, target_speeds)
-
-            for _ in range(4):
-                for i in range(N_pts - 1, -1, -1):
-                    i_next = (i + 1) % N_pts
-                    ds_step = dists[i] if i < len(dists) else dists[-1]
-                    v_max_brake = math.sqrt(target_speeds[i_next]**2 + 2.0 * a_brake_max * ds_step)
-                    if target_speeds[i] > v_max_brake:
-                        target_speeds[i] = v_max_brake
-                for i in range(N_pts):
-                    i_prev = (i - 1) % N_pts
-                    ds_step = dists[i_prev] if i_prev < len(dists) else dists[0]
-                    v_max_accel = math.sqrt(target_speeds[i_prev]**2 + 2.0 * a_accel_max * ds_step)
-                    if target_speeds[i] > v_max_accel:
-                        target_speeds[i] = v_max_accel
+            headings, kappa = compute_centerline_geometry(waypoints, s_arr)
+            target_speeds = generate_speed_profile(
+                waypoints, kappa, lat_accel_max, min_corner_speed,
+                max_straight_speed, a_brake_max, a_accel_max
+            )
         else:
             raise ValueError(f"Unrecognized waypoint CSV format with {cols} columns: {active_csv}")
 
@@ -404,18 +235,21 @@ class TrackManager:
             map_yaml_path=map_yaml,
             map_png_path=map_png,
             map_path_no_ext=map_path_no_ext,
+            # pyrefly: ignore[unbound-name]
             sdf_fn=sdf_fn_instance
         )
 
     @classmethod
     def sync_sim_yaml(cls, track_info: TrackInfo, custom_sim_yaml: Optional[str] = None) -> bool:
-        """Synchronizes f1tenth_gym_ros sim.yaml configuration with selected track and start pose."""
         ws_roots = [cls.get_workspace_root(), '/sim_ws', '/home/yeswanth/roboracer_ws']
         target_yamls = [custom_sim_yaml]
         for w in ws_roots:
             if w:
-                target_yamls.append(os.path.join(w, 'src/f1tenth_gym_ros/config/sim.yaml'))
-                target_yamls.append(os.path.join(w, 'install/f1tenth_gym_ros/share/f1tenth_gym_ros/config/sim.yaml'))
+                target_yamls.extend([
+                    os.path.join(w, 'src/simulation/f1tenth_gym_ros/config/sim.yaml'),
+                    os.path.join(w, 'src/f1tenth_gym_ros/config/sim.yaml'),
+                    os.path.join(w, 'install/f1tenth_gym_ros/share/f1tenth_gym_ros/config/sim.yaml')
+                ])
 
         if not track_info.map_path_no_ext or not os.path.isfile(track_info.map_path_no_ext + '.yaml'):
             return False
@@ -435,9 +269,9 @@ class TrackManager:
                         p['sy'] = track_info.start_pose[1]
                         p['stheta'] = track_info.start_pose[2]
 
-                        with open(ypath, 'w') as f:
-                            yaml.dump(cfg, f, default_flow_style=False, sort_keys=False)
-                        updated_any = True
+                    with open(ypath, 'w') as f:
+                        yaml.dump(cfg, f, default_flow_style=False, sort_keys=False)
+                    updated_any = True
                 except Exception as e:
                     print(f"[TrackManager] Warning: Failed updating {ypath}: {e}")
 

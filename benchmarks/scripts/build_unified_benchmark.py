@@ -150,7 +150,9 @@ comp_rates = []
 col_counts = []
 for ctrl in ctrl_keys:
     tot = len(circuits_primary)
+    # pyrefly: ignore[unsupported-operation]
     comps = sum(1 for trk in circuits_primary if get_entry(trk, ctrl) and get_entry(trk, ctrl)['completed'])
+    # pyrefly: ignore[unsupported-operation]
     crashes = sum(1 for trk in circuits_primary if get_entry(trk, ctrl) and get_entry(trk, ctrl)['crashed'])
     comp_rates.append((comps / tot) * 100.0)
     col_counts.append(crashes)

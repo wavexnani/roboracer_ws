@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""
-ROS 2 Node for Adaptive Multi-Regime Hybrid Controller (ARM-HC).
-ROBORACER IFAC 2026 Regulations Compliant.
-Publishes /drive commands and real-time RViz diagnostic markers.
-"""
+"""ROS 2 Node for Adaptive Multi-Regime Hybrid Controller (ARM-HC)."""
 
 import sys
 import math
@@ -12,12 +8,13 @@ from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 from ackermann_msgs.msg import AckermannDriveStamped
-from geometry_msgs.msg import PoseWithCovarianceStamped, Point
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from visualization_msgs.msg import Marker
 from std_msgs.msg import Bool
 
 from hybrid_controller.track_manager import TrackManager, TrackInfo
 from hybrid_controller.hybrid_supervisor import HybridSupervisor, DrivingRegime, HybridControlOutput
+from hybrid_controller.visualization import create_raceline_marker, create_regime_marker, create_horizon_marker
 
 
 class HybridControllerNode(Node):
@@ -26,7 +23,6 @@ class HybridControllerNode(Node):
     def __init__(self, map_name_override: str = None, mode_override: str = None):
         super().__init__('hybrid_controller_node')
 
-        # Parameters
         self.declare_parameter('map_name', 'Spielberg')
         self.declare_parameter('mode', 'Q1')
         self.declare_parameter('low_friction_mode', False)
@@ -37,7 +33,6 @@ class HybridControllerNode(Node):
         self.declare_parameter('visualize', True)
         self.declare_parameter('rate_hz', 25.0)
 
-        # Cache parameter values
         p = lambda name: self.get_parameter(name).value
         raw_map = map_name_override or str(p('map_name'))
         self.map_name = TrackManager.resolve_track_name(raw_map) or raw_map
@@ -50,8 +45,7 @@ class HybridControllerNode(Node):
         self.visualize = bool(p('visualize'))
         self.rate_hz = float(p('rate_hz'))
 
-        # Load track and initialize supervisor
-        self.get_logger().info(f"Loading track: '{self.map_name}' (Mode: {self.mode}, Low Friction: {self.low_friction_mode})")
+        self.get_logger().info(f"Loading track: '{self.map_name}' (Mode: {self.mode})")
         self.track = TrackManager.load_track(
             track_name=self.map_name,
             waypoint_type='raceline',
@@ -64,14 +58,12 @@ class HybridControllerNode(Node):
             mpc_rate_hz=self.rate_hz
         )
 
-        # State storage
         self.latest_odom: Odometry = None
         self.latest_scan: LaserScan = None
         self.e_stop_active = False
         self._first_odom_received = False
         self._init_pose_count = 0
 
-        # ROS 2 Interfaces
         self.drive_pub = self.create_publisher(AckermannDriveStamped, self.drive_topic, 10)
         self.initial_pose_pub = self.create_publisher(PoseWithCovarianceStamped, self.initialpose_topic, 5)
 
@@ -79,25 +71,22 @@ class HybridControllerNode(Node):
             self.regime_marker_pub = self.create_publisher(Marker, '/vis/active_regime', 5)
             self.horizon_marker_pub = self.create_publisher(Marker, '/vis/predicted_horizon', 5)
             self.path_marker_pub = self.create_publisher(Marker, '/vis/raceline', 1)
-            self._publish_static_raceline()
+            self.path_marker_pub.publish(create_raceline_marker(self.track.waypoints))
 
         self.odom_sub = self.create_subscription(Odometry, self.odom_topic, self.odom_callback, 10)
         self.scan_sub = self.create_subscription(LaserScan, self.scan_topic, self.scan_callback, 10)
         self.estop_sub = self.create_subscription(Bool, '/e_stop', self.estop_callback, 10)
 
-        # Main 25 Hz control loop timer
         self.control_timer = self.create_timer(1.0 / self.rate_hz, self.control_loop_tick)
         self.init_pose_timer = self.create_timer(0.5, self._publish_initial_pose_tick)
 
-        self.get_logger().info(
-            f"ARM-HC Hybrid Controller ready! Track: {self.map_name} ({self.track.track_length:.1f}m). "
-            f"Mode: {self.mode}. Sub: {self.odom_topic}, Pub: {self.drive_topic}"
-        )
+        self.get_logger().info(f"Hybrid Controller ready! Track: {self.map_name} ({self.track.track_length:.1f}m)")
 
     def _publish_initial_pose_tick(self):
         if self._first_odom_received:
             self.init_pose_timer.cancel()
             return
+
         self._init_pose_count += 1
         x0, y0, theta0 = self.track.start_pose
         msg = PoseWithCovarianceStamped()
@@ -111,33 +100,6 @@ class HybridControllerNode(Node):
         msg.pose.covariance[7] = 0.25
         msg.pose.covariance[35] = 0.068
         self.initial_pose_pub.publish(msg)
-
-    def _publish_static_raceline(self):
-        m = Marker()
-        m.header.frame_id = 'map'
-        m.header.stamp = self.get_clock().now().to_msg()
-        m.ns = 'raceline'
-        m.id = 0
-        m.type = Marker.LINE_STRIP
-        m.action = Marker.ADD
-        m.scale.x = 0.08
-        m.color.r = 0.0
-        m.color.g = 0.8
-        m.color.b = 1.0
-        m.color.a = 0.7
-        for pt in self.track.waypoints:
-            p = Point()
-            p.x = float(pt[0])
-            p.y = float(pt[1])
-            p.z = 0.02
-            m.points.append(p)
-        if len(self.track.waypoints) > 0:
-            p = Point()
-            p.x = float(self.track.waypoints[0, 0])
-            p.y = float(self.track.waypoints[0, 1])
-            p.z = 0.02
-            m.points.append(p)
-        self.path_marker_pub.publish(m)
 
     def odom_callback(self, msg: Odometry):
         if not self._first_odom_received:
@@ -153,7 +115,7 @@ class HybridControllerNode(Node):
     def estop_callback(self, msg: Bool):
         self.e_stop_active = msg.data
         if self.e_stop_active:
-            self.get_logger().warn("EMERGENCY STOP (KILL SWITCH) TRIGGERED! Halting vehicle immediately.")
+            self.get_logger().warn("EMERGENCY STOP TRIGGERED!")
 
     def control_loop_tick(self):
         if not self.latest_odom:
@@ -189,56 +151,9 @@ class HybridControllerNode(Node):
         self.drive_pub.publish(cmd)
 
         if self.visualize:
-            self._publish_diagnostics(cur_x, cur_y, out)
-
-    def _publish_diagnostics(self, x: float, y: float, out: HybridControlOutput):
-        # 1. Text marker indicating active regime above vehicle
-        m = Marker()
-        m.header.frame_id = 'map'
-        m.header.stamp = self.get_clock().now().to_msg()
-        m.ns = 'active_regime'
-        m.id = 1
-        m.type = Marker.TEXT_VIEW_FACING
-        m.action = Marker.ADD
-        m.pose.position.x = x
-        m.pose.position.y = y
-        m.pose.position.z = 0.60
-        m.scale.z = 0.30
-
-        regime_name = out.active_regime.value
-        m.text = f"[{regime_name}]\nV: {out.speed:.1f} m/s | Steer: {math.degrees(out.steering):.1f}°"
-
-        if out.active_regime == DrivingRegime.WALL_DAMPED:
-            m.color.r, m.color.g, m.color.b, m.color.a = 1.0, 0.65, 0.0, 1.0  # Orange
-        elif out.active_regime == DrivingRegime.OBSTACLE_BYPASS:
-            m.color.r, m.color.g, m.color.b, m.color.a = 1.0, 0.0, 0.8, 1.0   # Magenta
-        elif out.active_regime == DrivingRegime.HIGH_SPEED_STRAIGHT:
-            m.color.r, m.color.g, m.color.b, m.color.a = 0.0, 1.0, 0.3, 1.0   # Bright Green
-        elif out.active_regime == DrivingRegime.CORNER_APEX:
-            m.color.r, m.color.g, m.color.b, m.color.a = 0.2, 0.7, 1.0, 1.0   # Blue
-        else:  # STANLEY_RECOVERY
-            m.color.r, m.color.g, m.color.b, m.color.a = 1.0, 0.1, 0.1, 1.0   # Red
-
-        self.regime_marker_pub.publish(m)
-
-        # 2. Predicted MPC trajectory ribbon
-        if out.predicted_horizon is not None:
-            hm = Marker()
-            hm.header.frame_id = 'map'
-            hm.header.stamp = self.get_clock().now().to_msg()
-            hm.ns = 'predicted_horizon'
-            hm.id = 2
-            hm.type = Marker.LINE_STRIP
-            hm.action = Marker.ADD
-            hm.scale.x = 0.09
-            hm.color.r, hm.color.g, hm.color.b, hm.color.a = 0.0, 1.0, 0.1, 0.9
-            for k in range(len(out.predicted_horizon)):
-                p = Point()
-                p.x = float(out.predicted_horizon[k, 0])
-                p.y = float(out.predicted_horizon[k, 1])
-                p.z = 0.03
-                hm.points.append(p)
-            self.horizon_marker_pub.publish(hm)
+            self.regime_marker_pub.publish(create_regime_marker(out.active_regime, out.speed, out.steering, cur_x, cur_y))
+            if out.predicted_horizon is not None:
+                self.horizon_marker_pub.publish(create_horizon_marker(out.predicted_horizon))
 
 
 def main(args=None):

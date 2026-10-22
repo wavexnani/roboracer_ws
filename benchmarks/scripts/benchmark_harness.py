@@ -39,7 +39,6 @@ def _patched_make(id, **kwargs):
     return env.unwrapped
 gym.make = _patched_make
 
-import f110_gym
 from mpc_controller.track_manager import TrackManager, TrackInfo
 from mpc_controller.mpc_optimizer import MPCOptimizer, MPCConfig
 
@@ -489,6 +488,7 @@ def run_simulation(
         raise ValueError(f"Unknown controller type: {controller_type}")
 
     env = gym.make('f110_gym:f110-v0', map=map_path_no_ext, map_ext='.png', num_agents=1)
+    # pyrefly: ignore[bad-argument-count]
     reset_ret = env.reset(np.array([[start_pose[0], start_pose[1], start_pose[2]]]))
     obs = reset_ret[0] if isinstance(reset_ret, tuple) else reset_ret
 

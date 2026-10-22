@@ -58,6 +58,7 @@ def launch_setup(context, *args, **kwargs):
 
     # Launch Hybrid Controller Node
     actions.append(
+        # pyrefly: ignore[bad-argument-type]
         Node(
             package='hybrid_controller',
             executable='hybrid_controller_node.py',

@@ -20,12 +20,16 @@ from PIL import Image
 import numpy as np
 
 # Add package paths
-for p in ['/sim_ws/src/mpc_controller', '/home/yeswanth/roboracer_ws/src/mpc_controller']:
+for p in [
+    '/sim_ws/src/controllers/mpc_controller',
+    '/home/yeswanth/roboracer_ws/src/controllers/mpc_controller',
+    '/sim_ws/src/mpc_controller',
+    '/home/yeswanth/roboracer_ws/src/mpc_controller'
+]:
     if os.path.isdir(p) and p not in sys.path:
         sys.path.insert(0, p)
 
 import gym
-import f110_gym
 from mpc_controller.track_manager import TrackManager, TrackInfo
 from mpc_controller.mpc_optimizer import MPCOptimizer, MPCConfig
 

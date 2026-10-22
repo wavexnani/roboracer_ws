@@ -33,7 +33,6 @@ def _patched_make(id, **kwargs):
     kwargs['disable_env_checker'] = True
     return _orig_make(id, **kwargs).unwrapped
 gym.make = _patched_make
-import f110_gym
 
 from hybrid_controller.track_manager import TrackManager
 from hybrid_controller.hybrid_supervisor import HybridSupervisor, DrivingRegime
@@ -67,6 +66,7 @@ def run_hybrid_benchmark():
         num_pts = len(track.waypoints)
 
         env = gym.make('f110_gym:f110-v0', map=track.map_path_no_ext, map_ext='.png', num_agents=1)
+        # pyrefly: ignore[bad-argument-count, bad-unpacking]
         obs, _, done, _ = env.reset(np.array([[start_pose[0], start_pose[1], start_pose[2]]]))
 
         supervisor = HybridSupervisor(track=track, mode='Q1', low_friction_mode=low_fric, mpc_rate_hz=mpc_rate_hz)
@@ -154,6 +154,7 @@ def run_hybrid_benchmark():
                 head_errors.append(round(out.heading_err, 4))
                 regimes.append(r_str)
 
+            # pyrefly: ignore[bad-unpacking]
             obs, reward, done, info = env.step(np.array([[cur_steer, cur_speed]]))
             sim_time += sim_dt
             step_count += 1
