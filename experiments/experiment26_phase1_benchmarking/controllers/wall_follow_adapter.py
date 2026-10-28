@@ -4,6 +4,7 @@ import math
 from typing import Tuple, Optional
 import numpy as np
 
+# pyrefly: ignore[missing-import]
 from .base_controller import BaseBenchmarkController, compute_cross_track_error
 
 
@@ -54,6 +55,7 @@ class WallFollowAdapter(BaseBenchmarkController):
         self.last_idx = 0
 
     def _get_range(self, ranges: np.ndarray, angle: float, angle_min: float, angle_inc: float) -> float:
+        # pyrefly: ignore[unnecessary-type-conversion]
         idx = int(round((angle - angle_min) / angle_inc))
         idx = np.clip(idx, 0, len(ranges) - 1)
         r = ranges[idx]

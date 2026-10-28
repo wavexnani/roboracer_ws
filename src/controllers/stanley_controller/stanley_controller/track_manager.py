@@ -33,7 +33,7 @@ class TrackManager:
     def get_workspace_root() -> str:
         current = os.path.abspath(__file__)
         while current and current != os.path.dirname(current):
-            if os.path.isdir(os.path.join(current, 'src', 'f1tenth_racetracks')):
+            if os.path.isdir(os.path.join(current, 'src', 'simulation', 'f1tenth_racetracks')) or os.path.isdir(os.path.join(current, 'src', 'controllers')) or os.path.isdir(os.path.join(current, 'src', 'f1tenth_racetracks')):
                 return current
             if os.path.basename(current) in ('roboracer_ws', 'sim_ws'):
                 return current

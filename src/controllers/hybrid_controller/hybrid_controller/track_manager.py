@@ -144,11 +144,12 @@ class TrackManager:
 
         if active_csv is None or not os.path.isfile(active_csv):
             local_cands = [
+                os.path.join(ws_root, f'src/controllers/stanley_controller/waypoints/{canonical_name}_{waypoint_type}.csv'),
+                os.path.join(ws_root, f'src/controllers/stanley_controller/waypoints/{canonical_name}_raceline.csv'),
+                os.path.join(ws_root, f'src/controllers/stanley_controller/waypoints/{canonical_name}_centerline.csv'),
+                os.path.join(ws_root, 'src/controllers/stanley_controller/waypoints/Spielberg_raceline.csv'),
+                os.path.join(ws_root, 'src/controllers/stanley_controller/waypoints/Spielberg_centerline.csv'),
                 os.path.join(ws_root, f'src/stanley_controller/waypoints/{canonical_name}_{waypoint_type}.csv'),
-                os.path.join(ws_root, f'src/stanley_controller/waypoints/{canonical_name}_raceline.csv'),
-                os.path.join(ws_root, f'src/stanley_controller/waypoints/{canonical_name}_centerline.csv'),
-                os.path.join(ws_root, 'src/stanley_controller/waypoints/Spielberg_raceline.csv'),
-                os.path.join(ws_root, 'src/stanley_controller/waypoints/Spielberg_centerline.csv'),
             ]
             for cand in local_cands:
                 if os.path.isfile(cand):
